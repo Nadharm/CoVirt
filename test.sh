@@ -2,5 +2,5 @@
 
 make
 
-sudo insmod svm_check.ko
-sudo rmmod svm_check.ko
+sudo insmod covirt_module.ko
+sudo rmmod covirt_module.ko
