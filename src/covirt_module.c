@@ -3,6 +3,7 @@
 #include <linux/module.h>
 
 #include "msr_ops.h"
+#include "svmrun.h"
 
 #define SVM_FF 0x4  // SVM Feature Flag
 #define VM_CR 0xC0010114  // VM_CR MSR
@@ -13,6 +14,7 @@ static int svm_check(void);  // Will prob move this to a helper
 static int __init test_init(void) 
 {
 	svm_check();
+	vmrun();
 	return 0;
 }
 
