@@ -1,11 +1,14 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
+#include <asm/io.h>
 
 #include "svmrun.h"
+#include "msr_ops.h"
 
 #define VMCB_ALIGN 0x1000  // 4KB aligned
-#define VMCB_SIZE 0x400  // 1024 Bytes
-
+#define VMCB_SIZE 0x1000  // 1024 Bytes
+#define EFER_MSR 0xC0000080 // Address of EFER MSR
+#define SVME 1 << 12
 
 // Reference: [AMD V2 15.5.1]
 
@@ -25,41 +28,46 @@
 // VMRUN loads guest state from VMCB state-save area
 //  - AMD DOCs specify the loaded guest state
 // VMRUN reads additional control bits from the VMCB (guest TLB flushing, injecting virtual int, etc.)
-// VMRUN checks the guest state (if illegal: exit to host)
+// VMRUN checks the guest state (if illegal: exit to host
 
-/*
-static void vmcb_constructor(void * vmcb_ptr){
-    // for now we do nothing...
-    printk("CONSTRUCTOR: VMCB Address %px\n", vmcb_ptr);
-}
-
-// This is a buggy version. Some notes:
-// kmem_cache_create will create multiple allocations, not just one.
 int vmrun(void){
-    struct kmem_cache * vmcb_aligned_cache;
+	// Does this need to be "volatile void *"?
     void * vmcb_ptr;
+	phys_addr_t phys_vmcb_ptr;
+	uint64_t cur_efer;
+	uint64_t new_efer;
+	uint32_t hi;
+	uint32_t lo;
 
-    vmcb_aligned_cache = kmem_cache_create("vmcb_aligned_cache", VMCB_SIZE, VMCB_ALIGN, GFP_KERNEL, vmcb_constructor);
-    if (!vmcb_aligned_cache){
-		printk("FAILED TO ALLOCATE VMCB\n");
-		return 1;
+	// Set EFER.SVME to 1 
+	cur_efer = read_msr(EFER_MSR);
+	printk("Current EFER = %016llx\n", cur_efer);
+	new_efer = cur_efer | SVME;
+	hi = new_efer & 0xFFFFFFFF00000000;
+	lo = new_efer & 0x00000000FFFFFFFF;
+	write_msr(EFER_MSR, hi, lo);
+	printk("New EFER = %016llx\n", new_efer);
+	
+	cur_efer = read_msr(EFER_MSR);
+	printk("Current EFER = %016llx\n", cur_efer);
+	if (cur_efer & SVME){
+		printk("EFER.SVME modification SUCCESS!\n");
+	} else {
+		printk("EFER.SVME modification FAILED\n");
+		return -1;
 	}
-	vmcb_ptr = kmem_cache_alloc(vmcb_aligned_cache, KM_NOSLEEP);
-    printk("VMCB Address %px\n", vmcb_ptr);
-    return 0;
-}
-*/
 
-int vmrun(void){
-	void * vmcb_ptr;
-	// I don't know if we'll want GFP_KERNEL here.
-	// Also, because this is a power of 2-sized block, kzalloc gives us the natural 4kb-alignment by default.
+	// Allocate VMCB Region
 	vmcb_ptr = kzalloc(VMCB_SIZE, GFP_KERNEL);
 	if (!vmcb_ptr){
 		printk("Failed to allocate VMCB\n");
 		return -1;
 	}
 	printk("VMCB allocated at %px\n", vmcb_ptr);
-	// kzfree((const void *) vmcb_ptr);
+    // kzfree((const void *) vmcb_ptr);
+    phys_vmcb_ptr = virt_to_phys(vmcb_ptr);
+
+    //__asm__ __volatile__ ("VMRUN" : : "a"(phys_vmcb_ptr));
+
 	return 0;
 }

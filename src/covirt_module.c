@@ -5,9 +5,12 @@
 #include "msr_ops.h"
 #include "svmrun.h"
 
-#define SVM_FF 0x4  // SVM Feature Flag
+#define SVM_FF 1 << 2 // SVM Feature Flag
+#define SVML_FF 1 << 2 // SVML Feature Flag
 #define VM_CR 0xC0010114  // VM_CR MSR
-#define SVMDIS 0x10  // SVMDIS bit in VM_CR MSR
+#define VMCR_SVMDIS 1 << 4  // SVMDIS bit in VM_CR MSR
+#define VMCR_Lock 1 << 3  // Lock bit in VM_CR MSR
+
 
 static int svm_check(void);  // Will prob move this to a helper
 
@@ -57,6 +60,7 @@ static int svm_check(void) {
 	
 	///
 	// Reading VM_CR to check for whether SVM is DISabled
+	// IF SVM.DIS == 1, EFER.SVME must be 0, thus we aren't able to do VMRUN.
 
 	printk("RDMSR on VM_CR...\n");
 
@@ -65,10 +69,31 @@ static int svm_check(void) {
 
 	printk("VMCR MSR: %016llx\n", vmcr_msr);
 	
-	if (!(vmcr_msr & SVMDIS)){
+	if (!(vmcr_msr & VMCR_SVMDIS)){
 		printk("VMCR.SVMDIS: SVM Allowed (EFER.SVME Writeable)\n");
 	} else {
 		printk("VMCR.SVMDIS: SVM NOT Allowed (EFER.SVME MBZ)\n");
+	}
+
+	if (!(vmcr_msr & VMCR_Lock)){
+		printk("VMCR.Lock = 0 (VMCR bits 3 + 4 unlocked)\n");
+	} else {
+		printk("VMCR.SVMDIS = 1 (VMCR bits 3 + 4 locked)\n");
+	}
+
+
+	op = 0x8000000A;
+	eax = 0;
+	ecx = 0;
+	ebx = 0;
+	edx = 0;
+	cpuid(op, &eax, &ebx, &ecx, &edx);
+
+	if (edx & SVML_FF) {
+		printk("SVM disabled with key, may be unlockable.\n");
+	} else {
+		printk("SVM Disabled at BIOS, Not Unlockable\n");
+		return -1;
 	}
 
 	return 0;
