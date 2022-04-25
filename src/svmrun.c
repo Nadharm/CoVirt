@@ -1,6 +1,5 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
-#include <linux/gfp.h>
 
 #include "svmrun.h"
 
@@ -37,9 +36,8 @@ int vmrun(void){
     struct kmem_cache * vmcb_aligned_cache;
     void * vmcb_ptr;
 
-    vmcb_aligned_cache = kmem_cache_create("vmcb_aligned_cache", VMCB_SIZE, VMCB_ALIGN, 0, vmcb_constructor);
-    printk("Cache struct created");
-    vmcb_ptr = kmem_cache_alloc(vmcb_aligned_cache, 0);
+    vmcb_aligned_cache = kmem_cache_create("vmcb_aligned_cache", VMCB_SIZE, VMCB_ALIGN, SLAB_POISON, vmcb_constructor);
+    vmcb_ptr = kmem_cache_alloc(vmcb_aligned_cache, SLAB_POISON);
     printk("VMCB Address %px\n", vmcb_ptr);
     return 1;
 }
