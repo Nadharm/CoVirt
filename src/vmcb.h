@@ -9,12 +9,39 @@ typedef struct salb {
 	uint64_t base;  // Only lower 32 bits are implemented
 } __attribute__((packed)) salb_t;  // I need a better name for this...
 
+typedef struct ctrl_reg {
+	int cr0 : 1;
+	int cr1 : 1;
+	int cr2 : 1;
+	int cr3 : 1;
+	int cr4 : 1;
+	int cr5 : 1;
+	int cr6 : 1;
+	int cr7 : 1;
+	int cr8 : 1;
+	int cr9 : 1;
+	int cr10 : 1;
+	int cr11 : 1;
+	int cr12 : 1;
+	int cr13 : 1;
+	int cr14 : 1;
+} __attribute__((packed)) ctrl_reg_t;
+
+typedef struct debug_reg {
+ // TODO
+} __attribute__((packed)) debug_reg_t; 
 
 // We'll eventually want to have structs defined for each type.
 typedef union efer {
 	uint64_t val;
 	// TODO: Struct here
 } efer_t; 
+
+typedef struct control_area {
+	ctrl_reg_t cr_reads;	
+	ctrl_reg_t cr_writes;
+
+} control_area_t;
 
 typedef struct state_save_area {
 		salb_t es;
@@ -86,7 +113,7 @@ typedef struct vmcb {
 	// State Save Area: saved guest state
 
 	// Control Area at offset 0x00 from start of VMCB
-	//control_area_t control_area;
+	// TODO: control_area_t control_area;
 	
 	// State Save Area at offset 0x400 from start of VMCB
 	state_save_area_t state_save_area;
