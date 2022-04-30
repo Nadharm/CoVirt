@@ -1,4 +1,4 @@
-#include <linux/kernel>
+#include <linux/kernel.h>
 
 /* This will contain the structures defining our VMCB */
 
@@ -138,7 +138,7 @@ typedef struct svm_instr_intercepts {
 	int XSETBV			: 1; // [13]
 	int RDPRU			: 1; // [14]
 	int EFER_WR			: 1; // [15] Write of EFER (occurs after guest instruction finishes)
-	ctrl_reg_t CR_WR	: 1; // [16:31] Writes to CR0-15. Isn't this redundant?
+	ctrl_reg_t CR_WR; // [16:31] Writes to CR0-15. Isn't this redundant?
 } __attribute__((packed)) svm_instr_intercepts_t;
 
 typedef struct mm_instr_intercepts {
@@ -197,7 +197,7 @@ typedef struct control_area {
 	svm_instr_intercepts_t svm_instr_intercepts;
 
 	// 0x014
-	mm_intercepts_t mm_instr_intercepts;
+	mm_instr_intercepts_t mm_instr_intercepts;
 
 	// 0x018
 	char rsvd0[36];  // 0x018 - 0x03B reserved
@@ -269,7 +269,7 @@ typedef struct control_area {
 
 	//0x0E0
 	uint64_t APIC_BACKING_PAGE_PTR	: 52;
-	uint64_t rsvd7					: 12;
+	uint64_t rsvd99					: 12;
 
 	//0x0E8
 	char rsvd8[8];
@@ -370,7 +370,7 @@ typedef struct state_save_area {
 		uint64_t spec_ctrl;
 
 		// 0x2E8 -> End of VMCB Reserved
-		char rsvd_to_end[VMCB_SIZE - (0x2E8 + VMCB_SS_AREA_OFFSET)]
+		char rsvd_to_end[VMCB_SIZE - (0x2E8 + VMCB_SS_AREA_OFFSET)];
 } __attribute__((packed)) state_save_area_t;
 
 

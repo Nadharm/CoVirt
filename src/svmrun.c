@@ -4,10 +4,12 @@
 
 #include "svmrun.h"
 #include "msr_ops.h"
+#include "vmcb.h"
 
 #define VMCB_ALIGN 0x1000  // 4KB aligned
 #define VMCB_SIZE 0x1000  // 1024 Bytes
 #define EFER_MSR 0xC0000080 // Address of EFER MSR
+#define VM_HSAVE_PA_MSR	0xC0010117 // The PA of host state save goes here
 #define SVME 1 << 12
 
 // Reference: [AMD V2 15.5.1]
@@ -32,7 +34,9 @@
 
 int vmrun(void){
 	// Does this need to be "volatile void *"?
-    void * vmcb_ptr;
+	void * vm_hsave_va;
+	phys_addr_t vm_hsave_pa;
+    vmcb_t * vmcb_ptr;
 	phys_addr_t phys_vmcb_ptr;
 	uint64_t cur_efer;
 	uint64_t new_efer;
@@ -57,15 +61,23 @@ int vmrun(void){
 		return -1;
 	}
 
+	// Allocate VM_HSAVE_PA MSR (C001_0117)
+	vm_hsave_va = kzalloc(0x1000, GFP_KERNEL);
+	vm_hsave_pa = virt_to_phys(vm_hsave_va);
+	hi = vm_hsave_pa & UPPER_4;
+	lo = vm_hsave_pa & LOWER_4;
+	write_msr(VM_HSAVE_PA_MSR, hi, lo);
+
 	// Allocate VMCB Region
-	vmcb_ptr = kzalloc(VMCB_SIZE, GFP_KERNEL);
+	vmcb_ptr = (vmcb_t *)kzalloc(VMCB_SIZE, GFP_KERNEL);
 	if (!vmcb_ptr){
 		printk("Failed to allocate VMCB\n");
 		return -1;
 	}
+
 	printk("VMCB allocated at %px\n", vmcb_ptr);
     // kzfree((const void *) vmcb_ptr);
-    phys_vmcb_ptr = virt_to_phys(vmcb_ptr);
+    phys_vmcb_ptr = virt_to_phys((void *) vmcb_ptr);
 
     //__asm__ __volatile__ ("VMRUN" : : "a"(phys_vmcb_ptr));
 
