@@ -10,26 +10,46 @@ typedef struct salb {
 } __attribute__((packed)) salb_t;  // I need a better name for this...
 
 typedef struct ctrl_reg {
-	int cr0 : 1;
-	int cr1 : 1;
-	int cr2 : 1;
-	int cr3 : 1;
-	int cr4 : 1;
-	int cr5 : 1;
-	int cr6 : 1;
-	int cr7 : 1;
-	int cr8 : 1;
-	int cr9 : 1;
-	int cr10 : 1;
-	int cr11 : 1;
-	int cr12 : 1;
-	int cr13 : 1;
-	int cr14 : 1;
+	int cr0 	: 1;
+	int cr1 	: 1;
+	int cr2 	: 1;
+	int cr3 	: 1;
+	int cr4 	: 1;
+	int cr5 	: 1;
+	int cr6 	: 1;
+	int cr7 	: 1;
+	int cr8		: 1;
+	int cr9 	: 1;
+	int cr10 	: 1;
+	int cr11 	: 1;
+	int cr12 	: 1;
+	int cr13 	: 1;
+	int cr14 	: 1;
+	int cr15 	: 1;
 } __attribute__((packed)) ctrl_reg_t;
 
 typedef struct debug_reg {
- // TODO
+	int dr0		: 1;
+	int dr1		: 1;
+	int dr2		: 1;
+	int dr3		: 1;
+	int dr4		: 1;
+	int dr5		: 1;
+	int dr6		: 1;
+	int dr7		: 1;
+	int dr8		: 1;
+	int dr9		: 1;
+	int dr10	: 1;
+	int dr11	: 1;
+	int dr12	: 1;
+	int dr13	: 1;
+	int dr14	: 1;
+	int dr15	: 1;
 } __attribute__((packed)) debug_reg_t; 
+
+typedef struct excp_vecs {
+
+}
 
 // We'll eventually want to have structs defined for each type.
 typedef union efer {
@@ -40,6 +60,10 @@ typedef union efer {
 typedef struct control_area {
 	ctrl_reg_t cr_reads;	
 	ctrl_reg_t cr_writes;
+
+	debug_reg_t dr_reads;
+	debug_reg_t dr_writes;
+
 
 } control_area_t;
 
