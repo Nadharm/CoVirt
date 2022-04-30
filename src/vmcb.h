@@ -48,8 +48,44 @@ typedef struct debug_reg {
 } __attribute__((packed)) debug_reg_t; 
 
 typedef struct excp_vecs {
+	// AMD Volume 2 Section 8.2
+	// interrupt vector | name | cause
+	// "ex<NUM>" = reserved/undefined vector
 
-}
+	int de		: 1; // (0) Divide-by-Zero
+	int	db 		: 1; // (1) Debug ; Instruction + data accesses
+	int nmi		: 1; // (2) External Non-maskable interrupt
+	int bp		: 1; // (3) Breakpoint ; INT3 instruction
+	int of		: 1; // (4) Overflow ; INTO instruction
+	int br		: 1; // (5) Bound-range ; BOUND instruction
+	int ud		: 1; // (6) Invalid opcode/instruction
+	int nm		: 1; // (7) Device not avail ; x87 instructions
+	int df 		: 1; // (8) Double fault ; exception during handling of another fault
+	int ex9		: 1; // 
+	int ts		: 1; // (10) Invalid TSS ; task-state segment access + task switch
+	int np 		: 1; // (11) Segment-Not-Present 
+	int ss 		: 1; // (12) Stack ; ss register loads and stack references
+	int gp		: 1; // (13) General-Protection ; mem accesses + protection checks
+	int pf		: 1; // (14) Page Fault ; mem accessses when paging enabled
+	int ex15	: 1;
+	int mf		: 1; // (16) x87 floating point exception pending ;
+	int ac		: 1; // (17) alignment check ; misaligned mem addr
+	int mc		: 1; // (18) machine check; model specific
+	int xf		: 1; // (19) SIMD Floating-point ; SSE floating-point instructions
+	int ex20	: 1;
+	int cp 		: 1; // (21) Control-Protection Exception ; RET/IRET or other control transfer
+	int ex22	: 1;
+	int ex23	: 1;
+	int ex24	: 1;
+	int ex25	: 1;
+	int ex26	: 1;
+	int ex27	: 1;
+	int hv		: 1; // (28) Hypervisor Injection ; Event injection 
+	int vc		: 1; // (29) VMM Communication Exception ; Virtualization Event
+	int sx		: 1; // (30) Security Exception ; Security-sensitive event in host 
+	int ex31	: 1;
+	
+} __attribute__((packed)) excp_vecs_t;
 
 // We'll eventually want to have structs defined for each type.
 typedef union efer {
