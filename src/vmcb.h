@@ -2,12 +2,11 @@
 
 /* This will contain the structures defining our VMCB */
 
-typedef struct salb {
-	uint16_t selector;
-	uint16_t attrib;
-	uint32_t limit;
-	uint64_t base;  // Only lower 32 bits are implemented
-} __attribute__((packed)) salb_t;  // I need a better name for this...
+#define VMCB_SIZE 				0x1000 // 4K
+#define VMCB_CTRL_AREA_OFFSET	0x000
+#define VMCB_CTRL_AREA_SIZE 	0x400
+#define VMCB_SS_AREA_OFFSET		0x400
+#define VMCB_SS_AREA_SIZE		0x2E8
 
 typedef struct ctrl_reg {
 	int CR0 	: 1;
@@ -142,12 +141,42 @@ typedef struct svm_instr_intercepts {
 	ctrl_reg_t CR_WR	: 1; // [16:31] Writes to CR0-15. Isn't this redundant?
 } __attribute__((packed)) svm_instr_intercepts_t;
 
+typedef struct mm_instr_intercepts {
+	int INVLPGB			: 1; // [0] All INVLPGB Instructions
+	int IL_INVLPGB		: 1; // [1] Invalid INVLPGB Instructions
+	int INVPCID			: 1; // [2]
+	int MCOMMIT			: 1; // [3]
+	int TLBSYNC			: 1; // [4] Presence of this bit indicated by CPUID Fn8000_0000A_EDX[24] = 1
+	int rsvd 			: 27; // [5-31] Reserved, SBZ
+} __attribute__((packed)) mm_instr_intercepts_t;
 
-// We'll eventually want to have structs defined for each type.
-typedef union efer {
-	uint64_t val;
-	// TODO: Struct here
-} efer_t; 
+typedef union tlb_control {
+	char val;
+	struct {
+		int do_nothing 		: 1; // [0] Do nothing
+		int flush_tlb		: 1; // [1] Flush the entire TLB on VMRUN (only use for legacy Hypervisors)
+		int rsvd0			: 1; // [2] Reserved
+		int flush_currrent	: 1; // [3] Flush this guest's TLB entries
+		int rsvd1			: 3; // [4-6] Reserved
+		int flush_non_glob	: 1; // [7] Flush this guest's non-global TLB entries
+	} __attribute__((packed));
+} __attribute__((packed)) tlb_control_t;
+
+typedef struct guest_int_ctrl {
+	int V_TPR		: 8; // Virtual TPR for the guest. [3:0] for the VTPR, [7:4] SBZ
+	int V_IRQ		: 1; // If nonzero, virtual INTR is pending. Written to VMCB @ VMEXIT. Ignored on VMRUN if AVIC enabled.
+	int VGIF		: 1; // (0 - Virtual Intr masked, 1 - Virtual Intr unmasked)
+	int rsvd0		: 6; // Reserved, SBZ
+	int V_INTR_PRIO	: 4; // Priority for virtual interrupt (ignored on VMRUN when AVIC enabled)
+	int V_IGN_TPR	: 1; // If nonzero, the current virtual interrupt ignores the virtual TPR
+	int rsvd1		: 3; // Reserved, SBZ
+	int V_INTR_MASK	: 1; // Virtualizing masking of INTR
+	int AMD_VGIF	: 1; // AMD Virutal GIF Enabled (0 - Disabled, 1 - Enabled)
+	int rsvd2		: 5; // Reserved, SBZ
+	int AVIC_ENABLE	: 1; // AVIC Enable
+	int V_INTR_VEC	: 8; // Vector to use for this interrupt (ignored on VMRUN w/ AVIC Enabled)
+	int rsvd3		: 24; // Reserved, SBZ
+} __attribute__((packed)) guest_int_ctrl_t; 
 
 typedef struct control_area {
 	// 0x000
@@ -167,8 +196,117 @@ typedef struct control_area {
 	// 0x010
 	svm_instr_intercepts_t svm_instr_intercepts;
 
+	// 0x014
+	mm_intercepts_t mm_instr_intercepts;
 
-} control_area_t;
+	// 0x018
+	char rsvd0[36];  // 0x018 - 0x03B reserved
+
+	// 0x03C
+	uint16_t pause_filter_threshold;
+	uint16_t pause_filter_count;
+
+	// 0x040
+	uint64_t IOPM_BASE_PA;  // Physical base addr of IOPM (bits 11:0 ignored)
+	uint64_t MSRPM_BASE_PA; // Physical base addr of MSRPM (bits 11:0 ignored)
+	uint64_t TSC_OFFSET; // Timestamp Counter offset (added to RDTSC + RDTSCP)
+
+	// 0x058 
+	uint32_t guest_asid;
+	tlb_control_t TLB_CONTROL;
+	char rsvd1[24];
+
+	// 0x060
+	guest_int_ctrl_t guest_int_ctrl;
+
+	// 0x068
+	int interrupt_shadow 		: 1; // Guest is in an interrupt shadow
+	int guest_interrupt_mask	: 1; // Valud of RFLAGS.IF bit for the guest. Written back to VMCB on VMEXIT.
+	uint64_t rsvd2				: 62; // Reserved, SBZ
+
+	// 0x070
+	uint64_t EXIT_CODE;
+	uint64_t EXIT_INFO1;
+	uint64_t EXIT_INFO2;
+	uint64_t EXIT_INT_INFO; // TODO: Struct for this
+
+	// 0x090
+	// I want a struct for this but idk if they're all even related... >:(
+	int NP_Enable 			: 1; // Enable Nested Paging
+	int SEV_Enable			: 1; // Enable Secure Encrypted Virtualization (SEV)
+	int Encrypt_SEV_Enable	: 1; // Enable Encrypted State for SEV
+	int GM_Execute_Trap		: 1; // Guest Mode Execute Trap (huh?)
+	int SSSCheckEn			: 1; // Enable Supervisor Shadow Stack restrictions in Nested PTs. CPUID Fn8000_000A_EDX[19]
+	int Virt_Trans_Encr		: 1; // Virtual Transparent Encryption
+	int rsvd3 				: 1; // Reserved, SBZ
+	int INVLPGB_TLBSYNC_EN	: 1; // Enable INVLPGB + TLBSYNC (If 0 -> #UD on instruction call)
+	uint64_t rsvd4			: 56; // Reserved, SBZ
+
+	// 0x098
+	uint64_t AVIC_APIC_BAR	: 52; // AVIC APIC BAR (idk what this is either) 
+	uint64_t rsvd5			: 12; // I do know that this is reserved, sbz tho!
+
+	// 0x0A0
+	uint64_t GHCB_PA; // Guest Physical Address of GHCB
+	uint64_t EVENTINJ; // Event Injection 
+	uint64_t N_CR3; // Nested page table CR3 to use for nested paging
+
+	//0x0B8
+	int LBR_VIRT_ENABLE		: 1; // 1 - Enable LBR Virtualization hardware acceleration
+	int VIRT_SAVE_LOAD		: 1; // 1 - Enable Virtualized VMSAVE/VMLOAD
+	uint64_t rsvd6			: 62; // Reserved, SBZ
+
+	// 0x0C0
+	uint32_t clean_bits;
+	uint32_t rsvd7;
+
+	// 0x0C8
+	uint64_t nRIP; // Next sequential instruction pointer
+
+	// 0x0D0 (wtf is this)
+	uint8_t num_bytes_fetched;
+	uint8_t guest_instruction_bytes[15]; 
+
+	//0x0E0
+	uint64_t APIC_BACKING_PAGE_PTR	: 52;
+	uint64_t rsvd7					: 12;
+
+	//0x0E8
+	char rsvd8[8];
+
+	// 0x0F0
+	uint64_t rsvd9					: 12;
+	uint64_t AVIC_LOGICAL_TABLE_PTR : 40; 
+	uint64_t rsvd10					: 12;
+
+	// 0x0F8
+	uint64_t AVIC_PHYS_MAX_IDX		: 8;
+	uint64_t rsvd11					: 4;
+	uint64_t AVIC_PHYS_TABLE_PTR	: 40;
+	uint64_t rsvd12					: 12;
+
+	// 0x100
+	uint64_t rsvd13;
+
+	// 0x108
+	uint64_t rsvd14					: 12;
+	uint64_t VMSA_PTR				: 40;
+	uint64_t rsvd15					: 12;
+
+	// 0x110 - 0x3DF Reserved, SBZ
+	char rsvd16[720];
+
+	// 0x3E0 - 0x3FF
+	// RESERVED FOR HOST
+	char rsvd17[VMCB_CTRL_AREA_SIZE - 0x3E0];
+} __attribute__((packed)) control_area_t;
+
+typedef struct salb {
+	uint16_t selector;
+	uint16_t attrib;
+	uint32_t limit;
+	uint64_t base;  // Only lower 32 bits are implemented
+} __attribute__((packed)) salb_t;  // I need a better name for this...
 
 typedef struct state_save_area {
 		salb_t es;
@@ -228,9 +366,11 @@ typedef struct state_save_area {
 
 		char rsvd5[72];  // 72 bytes reserved
 
+		// 0x2E0
 		uint64_t spec_ctrl;
 
 		// 0x2E8 -> End of VMCB Reserved
+		char rsvd_to_end[VMCB_SIZE - (0x2E8 + VMCB_SS_AREA_OFFSET)]
 } __attribute__((packed)) state_save_area_t;
 
 
@@ -240,12 +380,12 @@ typedef struct vmcb {
 	// State Save Area: saved guest state
 
 	// Control Area at offset 0x00 from start of VMCB
-	// TODO: control_area_t control_area;
+	control_area_t control_area;
 	
 	// State Save Area at offset 0x400 from start of VMCB
 	state_save_area_t state_save_area;
 	
-	// This SEV_ES will be an issue...
+	// This SEV_ES may be an issue...
 
 } __attribute__((packed)) vmcb_t;
 
