@@ -122,6 +122,27 @@ typedef struct instr_intercepts {
 	int SHUTDOWN	: 1;  // intercept shutdown events
 } __attribute__((packed)) instr_intercepts_t;
 
+typedef struct svm_instr_intercepts {
+	int VMRUN			: 1; // [0]
+	int VMMCALL			: 1; // [1]
+	int VMLOAD			: 1; // [2]
+	int VMSAVE			: 1; // [3]
+	int STGI			: 1; // [4]
+	int CLGI			: 1; // [5]
+	int SKINIT			: 1; // [6]
+	int RDTSCP			: 1; // [7]
+	int ICEBP			: 1; // [8]
+	int WBN_INST		: 1; // [9] WBINVD + WBNOINVD
+	int MONITOR			: 1; // [10] MONITOR/MONITORX
+	int MWAIT			: 1; // [11] MWAIT/MWAITX Unconditionally
+	int MWAIT_IF_ARMED	: 1; // [12] MWAIT/MWAITX if monitor hardware armed
+	int XSETBV			: 1; // [13]
+	int RDPRU			: 1; // [14]
+	int EFER_WR			: 1; // [15] Write of EFER (occurs after guest instruction finishes)
+	ctrl_reg_t CR_WR	: 1; // [16:31] Writes to CR0-15. Isn't this redundant?
+} __attribute__((packed)) svm_instr_intercepts_t;
+
+
 // We'll eventually want to have structs defined for each type.
 typedef union efer {
 	uint64_t val;
@@ -142,6 +163,10 @@ typedef struct control_area {
 
 	// 0x00C
 	instr_intercepts_t instr_intercepts;
+
+	// 0x010
+	svm_instr_intercepts_t svm_instr_intercepts;
+
 
 } control_area_t;
 
