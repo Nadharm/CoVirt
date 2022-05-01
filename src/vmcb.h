@@ -389,4 +389,5 @@ typedef struct vmcb {
 
 } __attribute__((packed)) vmcb_t;
 
+phys_addr_t vmcb_init(void);  // Will perform all set up for the VMCB and return its physical address.
 
