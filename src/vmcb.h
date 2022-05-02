@@ -1,6 +1,10 @@
 #include <linux/kernel.h>
 
-/* This will contain the structures defining our VMCB */
+/* This file contains:
+  - The structures defining our VMCB
+  - Relevant types (although we may want to move this into a separate file)
+  - Declarations for VMCB-related functions (state save, setup, etc.)
+*/
 
 #define VMCB_SIZE 				0x1000 // 4K
 #define VMCB_CTRL_AREA_OFFSET	0x000
@@ -305,7 +309,7 @@ typedef struct salb {
 	uint16_t selector;
 	uint16_t attrib;
 	uint32_t limit;
-	uint64_t base;  // Only lower 32 bits are implemented
+	uint64_t base;
 } __attribute__((packed)) salb_t;  // I need a better name for this...
 
 typedef struct state_save_area {
@@ -315,9 +319,9 @@ typedef struct state_save_area {
 		salb_t ds;
 		salb_t fs;
 		salb_t gs;
-		salb_t gdtr;
-		salb_t ldtr;
-		salb_t idtr;
+		salb_t gdtr;  // Selector + Attrib Reserved. Only lower 16 bits for Limit.
+		salb_t ldtr;  
+		salb_t idtr;  // Selector + Attrib Reserved. Only lower 16 bits for Limit.
 		salb_t tr;
 		
 		char rsvd0[43];  // 43 bytes reserved
@@ -388,6 +392,11 @@ typedef struct vmcb {
 	// This SEV_ES may be an issue...
 
 } __attribute__((packed)) vmcb_t;
+
+
+/*
+	VMCB Function Declarations
+*/
 
 phys_addr_t vmcb_init(void);  // Will perform all set up for the VMCB and return its physical address.
 

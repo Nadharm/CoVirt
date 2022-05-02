@@ -2,6 +2,7 @@
 #include <linux/cpumask.h>
 
 #include "vmcb.h"
+#include "svm_utils.h"
 
 // Reference: [AMD V2 15.5.1]
 // At this point, we assume running at CPL 0 & EFER.SVME == 1
@@ -26,9 +27,11 @@ int vmrun(void){
 
 	// We'll need to setup the VMCB for every single CPU. Maybe we'll start with a single core CPU.
 	// for_each_cpu(cpu, mask){
+		init_vm_hsave_pa();
 		phys_addr_t phys_vmcb_ptr = vmcb_init();
 	//	__asm__ __volatile__ ("VMRUN" : : "a"(phys_vmcb_ptr));
 
+	// We'll need a loop here, right? Handing the VMExits over to a handler.
 	// }
 	return 0;
 }

@@ -1,5 +1,6 @@
 #include <linux/kernel.h>
-#include <linux/module.h>
+#include <linux/slab.h>
+#include <asm/io.h>
 
 #include "reg_utils.h"
 #include "svm_utils.h"
@@ -105,4 +106,30 @@ int enable_svm(void){
 		printk("EFER.SVME modification FAILED\n");
 		return -1;
 	}
+}
+
+/*
+	VMRUN will save the Host state at the physical address in VM_HSAVE_PA MSR.
+	This function just allocates that memory and puts it into that MSR.
+
+	Not the best place to have this function, but since it's state-saving related
+	we'll keep it here for now.
+*/
+void init_vm_hsave_pa(void){
+	void * vm_hsave_va;
+	phys_addr_t vm_hsave_pa;
+	uint32_t hi;
+	uint32_t lo;
+
+	vm_hsave_pa = read_msr(VM_HSAVE_PA_MSR);
+	printk("BEFORE CHANGE: VM_HSAVE_PA MSR = %lldx\n", vm_hsave_pa);
+	// Allocate VM_HSAVE_PA MSR (C001_0117)
+	vm_hsave_va = kzalloc(0x1000, GFP_KERNEL);
+	vm_hsave_pa = virt_to_phys(vm_hsave_va);
+	hi = vm_hsave_pa & UPPER_4;
+	lo = vm_hsave_pa & LOWER_4;
+	write_msr(VM_HSAVE_PA_MSR, hi, lo);
+
+	vm_hsave_pa = read_msr(VM_HSAVE_PA_MSR);
+	printk("AFTER CHANGE: VM_HSAVE_PA MSR = %lldx\n", vm_hsave_pa);
 }

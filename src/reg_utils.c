@@ -1,6 +1,8 @@
 #include <linux/kernel.h>
 
 #include "svm_utils.h"
+#include "reg_utils.h"
+#include "vmcb.h"
 
 uint64_t read_msr (uint32_t msr)
 {
@@ -35,3 +37,22 @@ uint64_t get_cr4(void)
 	__asm__ __volatile__("mov %%cr4, %0" : "=r"(cr4));
 	return cr4;
 }
+
+desc_ptr get_idtr(void)
+{
+	desc_ptr idtr;
+	__asm__ __volatile__("sidt %0" : "=m"(idtr));
+	return idtr;
+}
+
+desc_ptr get_gdtr(void)
+{
+	desc_ptr gdtr;
+	__asm__ __volatile__("sgdt %0" : "=m"(gdtr));
+	return gdtr;
+}
+
+// salb_t get_es(void){
+// 	salb_t es;
+
+// }

@@ -11,9 +11,23 @@
 #define VMCR_Lock 1 << 3  // Lock bit in VM_CR MSR
 #define SVME 1 << 12  // EFER.SVME Bit
 
+// Should probably use Linux's desc_ptr but idk who cares
+typedef struct descriptor_ptr {
+    uint16_t limit;
+    uint64_t base;
+} __attribute__((packed)) desc_ptr;
+
 uint64_t read_msr(uint32_t msr);
 void write_msr(uint32_t msr, uint32_t hi, uint32_t lo);
 
 uint64_t get_cr0(void);
 uint64_t get_cr3(void);
 uint64_t get_cr4(void);
+
+desc_ptr get_idtr(void);
+desc_ptr get_gdtr(void);
+
+// uint16_t get_cs(void);
+// uint16_t get_es(void);
+// uint16_t get_ds(void);
+// uint16_t get_ss(void);
