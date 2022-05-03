@@ -1,0 +1,11 @@
+Stuff that needs to get done ASAP.
+
+We'll deal with a single-core environment for now.
+
+N:
+    - Set up the state-save area of the VMCB
+    - Store non-VMCB state (such as general purpose registers)
+    - Figure out how to manage RIP to redirect "guest" execution
+Y:
+    - Look into post-VMEXIT operation. 
+    - Set up the Control Area in the VMCB
