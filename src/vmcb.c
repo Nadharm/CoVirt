@@ -4,6 +4,7 @@
 
 #include "reg_utils.h"
 #include "vmcb.h"
+// #include "vmcb.h"
 
 /*
 	VMRUN will pull the info from the VMCB to initialize the guest with.
@@ -17,12 +18,12 @@ static void store_guest_cpu_info(vmcb_t * vmcb){
 	desc_ptr gdtr;
 
 	// Store CS, RIP
-	vmcb->state_save_area.cs = get_cs();
+	vmcb->state_save_area.cs.selector = get_cs();
 
 	// Store RFLAGS, RAX
 
 	// Store SS, RSP
-	vmcb->state_save_area.ss = get_ss();
+	vmcb->state_save_area.ss.selector = get_ss();
 
 	// Store CR0, CR2, CR3, CR4, EFER [Done]
 	vmcb->state_save_area.cr0 = get_cr0();
@@ -46,8 +47,8 @@ static void store_guest_cpu_info(vmcb_t * vmcb){
 
 	// Store ES and DS [Not fully done, we'll need to modify the get_es and get_ds functions]
 
-	vmcb->state_save_area.es = get_es();
-	vmcb->state_save_area.ds = get_ds();
+	vmcb->state_save_area.es.selector = get_es();
+	vmcb->state_save_area.ds.selector = get_ds();
 	
 	// Store DR6 and DR7 [Done]
 	vmcb->state_save_area.dr6 = get_dr6();
@@ -86,6 +87,7 @@ phys_addr_t vmcb_init() {
 	}
 
 	printk("VMCB allocated at %px\n", vmcb_ptr);
+	store_guest_cpu_info(vmcb_ptr);
     // kzfree((const void *) vmcb_ptr);
     phys_vmcb_ptr = virt_to_phys((void *) vmcb_ptr);
 	return phys_vmcb_ptr;

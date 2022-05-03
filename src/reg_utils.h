@@ -28,10 +28,10 @@ uint64_t get_cr4(void);
 desc_ptr get_idtr(void);
 desc_ptr get_gdtr(void);
 
-segment_t get_cs(void);
-segment_t get_es(void);
-segment_t get_ds(void);
-segment_t get_ss(void);
+uint16_t get_cs(void);
+uint16_t get_es(void);
+uint16_t get_ds(void);
+uint16_t get_ss(void);
 
 uint64_t get_dr6(void);
 uint64_t get_dr7(void);

@@ -27,7 +27,7 @@ int vmrun(void){
 
 	// We'll need to setup the VMCB for every single CPU. Maybe we'll start with a single core CPU.
 	// for_each_cpu(cpu, mask){
-		init_vm_hsave_pa();
+		// init_vm_hsave_pa();
 		phys_addr_t phys_vmcb_ptr = vmcb_init();
 	//	__asm__ __volatile__ ("VMRUN" : : "a"(phys_vmcb_ptr));
 

@@ -2,7 +2,7 @@
 
 #include "svm_utils.h"
 #include "reg_utils.h"
-#include "vmcb.h"
+// #include "vmcb.h"
 
 uint64_t read_msr (uint32_t msr)
 {
@@ -59,61 +59,45 @@ desc_ptr get_gdtr(void)
 	return gdtr;
 }
 
-segment_t get_es(void){
- 	segment_t es;
-	__asm__ __volatile__("mov %%es, %0" : "=m"(es->selector));
-	
-	// TODO: What to fill the Attrib, Limit, Base as? Default values?
-	// Does this even matter?
-
+uint16_t get_es(void){
+ 	uint16_t es;
+	__asm__ __volatile__("mov %%es, %0" : "=m"(es));
 	return es;
 }
 
-segment_t get_ds(void){
- 	segment_t ds;
-	__asm__ __volatile__("mov %%ds, %0" : "=m"(ds->selector));
-	
-	// TODO: What to fill the Attrib, Limit, Base as? Default values?
-	// Does this even matter?
-
+uint16_t get_ds(void){
+ 	uint16_t ds;
+	__asm__ __volatile__("mov %%ds, %0" : "=m"(ds));
 	return ds;
 }
 
-segment_t get_ss(void){
- 	segment_t ss;
-	__asm__ __volatile__("mov %%ss, %0" : "=m"(ss->selector));
-	
-	// TODO: What to fill the Attrib, Limit, Base as? Default values?
-	// Does this even matter?
-
+uint16_t get_ss(void){
+ 	uint16_t ss;
+	__asm__ __volatile__("mov %%ss, %0" : "=m"(ss));
 	return ss;
 }
 
-segment_t get_cs(void){
- 	segment_t cs;
-	__asm__ __volatile__("mov %%cs, %0" : "=m"(cs->selector));
-	
-	// TODO: What to fill the Attrib, Limit, Base as? Default values?
-	// Does this even matter?
-
+uint16_t get_cs(void){
+ 	uint16_t cs;
+	__asm__ __volatile__("mov %%cs, %0" : "=m"(cs));
 	return cs;
 }
 
 uint64_t get_dr6(void) {
 	uint64_t dr6;
-	__asm__ __volatile__("mov %%dr6, %0": "=m"(dr6));
+	__asm__ __volatile__("mov %%dr6, %0": "=a"(dr6));
 	return dr6;
 }
 uint64_t get_dr7(void) {
 	uint64_t dr7;
-	__asm__ __volatile__("mov %%dr7, %0": "=m"(dr7));
+	__asm__ __volatile__("mov %%dr7, %0": "=a"(dr7));
 	return dr7;
 }
 
 uint8_t get_vtpr(void){
 	uint64_t cr8;
 	uint8_t vtpr;  // Yes, i know the TPR is only 4 bits, but VMCB struct has 8 bits reserved for VMCB.
-	__asm__ __volatile__("mov %%cr8, %0": "=m"(cr8));
+	__asm__ __volatile__("mov %%cr8, %0": "=a"(cr8));
 	vtpr = cr8 & 0x0F;  // Happy? [3:0] = TPR, [7:4] = SBZ
 	return vtpr;
 }

@@ -10,8 +10,8 @@ static int __init test_init(void)
 
 	// TODO: find a way to organize this so it works w/ the guest RIP nicely (if that even matters idk)
 	// Needs to do these for all CPUs
-	svm_check(); // Return 0 if SVM possible
-	enable_svm(); // Return 0 on success
+	// svm_check(); // Return 0 if SVM possible
+	// enable_svm(); // Return 0 on success
 
 	// Maybe we'll have this be a wrapper that hits VMRUN for all CPUs separately.
 	vmrun();
