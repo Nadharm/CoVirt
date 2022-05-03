@@ -21,13 +21,20 @@ uint64_t read_msr(uint32_t msr);
 void write_msr(uint32_t msr, uint32_t hi, uint32_t lo);
 
 uint64_t get_cr0(void);
+uint64_t get_cr2(void);
 uint64_t get_cr3(void);
 uint64_t get_cr4(void);
 
 desc_ptr get_idtr(void);
 desc_ptr get_gdtr(void);
 
-// uint16_t get_cs(void);
-// uint16_t get_es(void);
-// uint16_t get_ds(void);
-// uint16_t get_ss(void);
+segment_t get_cs(void);
+segment_t get_es(void);
+segment_t get_ds(void);
+segment_t get_ss(void);
+
+uint64_t get_dr6(void);
+uint64_t get_dr7(void);
+
+uint8_t get_vtpr(void);  // This is 8 bits, even though the V_TPR is 4 bits. This is because of the VMCB CA's stucture. 
+// uint8_t get_virq(void);  // This actually is only 1 bit

@@ -305,24 +305,24 @@ typedef struct control_area {
 	char rsvd17[VMCB_CTRL_AREA_SIZE - 0x3E0];
 } __attribute__((packed)) control_area_t;
 
-typedef struct salb {
+typedef struct segment {
 	uint16_t selector;
 	uint16_t attrib;
 	uint32_t limit;
 	uint64_t base;
-} __attribute__((packed)) salb_t;  // I need a better name for this...
+} __attribute__((packed)) segment_t;  // I need a better name for this...
 
 typedef struct state_save_area {
-		salb_t es;
-		salb_t cs;
-		salb_t ss;
-		salb_t ds;
-		salb_t fs;
-		salb_t gs;
-		salb_t gdtr;  // Selector + Attrib Reserved. Only lower 16 bits for Limit.
-		salb_t ldtr;  
-		salb_t idtr;  // Selector + Attrib Reserved. Only lower 16 bits for Limit.
-		salb_t tr;
+		segment_t es;
+		segment_t cs;
+		segment_t ss;
+		segment_t ds;
+		segment_t fs;
+		segment_t gs;
+		segment_t gdtr;  // Selector + Attrib Reserved. Only lower 16 bits for Limit.
+		segment_t ldtr;  
+		segment_t idtr;  // Selector + Attrib Reserved. Only lower 16 bits for Limit.
+		segment_t tr;
 		
 		char rsvd0[43];  // 43 bytes reserved
 
@@ -400,3 +400,4 @@ typedef struct vmcb {
 
 phys_addr_t vmcb_init(void);  // Will perform all set up for the VMCB and return its physical address.
 
+void debug_vmcb(vmcb_t * vmcb);  // Print out the VMCB contents
