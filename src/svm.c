@@ -23,15 +23,19 @@
 // VMRUN reads additional control bits from the VMCB (guest TLB flushing, injecting virtual int, etc.)
 // VMRUN checks the guest state (if illegal: exit to host
 
-int vmrun(void){
+phys_addr_t phys_vmcb_ptr;
+
+int vm_setup(void){
 
 	// We'll need to setup the VMCB for every single CPU. Maybe we'll start with a single core CPU.
 	// for_each_cpu(cpu, mask){
 		// init_vm_hsave_pa();
-		phys_addr_t phys_vmcb_ptr = vmcb_init();
-	//	__asm__ __volatile__ ("VMRUN" : : "a"(phys_vmcb_ptr));
+		phys_vmcb_ptr = vmcb_init();
 
 	// We'll need a loop here, right? Handing the VMExits over to a handler.
 	// }
 	return 0;
 }
+
+//__asm__ __volatile__ ("VMRUN" : : "a"(phys_vmcb_ptr));
+
