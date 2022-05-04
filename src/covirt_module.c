@@ -1,9 +1,19 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/slab.h>
 
 #include "svm_utils.h"
 #include "svm.h"
+
+// Defined as globals for now, this is where we'll store the additional guest + host states
+void * __global_Host_Reg_Store; 
+void * __global_Guest_Reg_Store;
+void * __global_VMCB_VA;
+phys_addr_t __global_VMCB_PA;
+phys_addr_t __global_VM_HSAVE_PA;
+
+extern void VM_Setup(void * HS_location, void * GS_location);
 
 static int __init test_init(void) 
 {
@@ -12,9 +22,14 @@ static int __init test_init(void)
 	// Needs to do these for all CPUs
 	svm_check(); // Return 0 if SVM possible
 	enable_svm(); // Return 0 on success
+	init_vm_hsave_pa();
 
+	Host_State_Store = kzalloc(128, GFP_KERNEL);  // only need like 128 bytes for now
+	Guest_State_Store = kzalloc(128, GFP_KERNEL);  // only neeed like 128 bytes for now
+
+	VM_Setup_and_Run();	
 	// Maybe we'll have this be a wrapper that hits VMRUN for all CPUs separately.
-	vmrun();
+	// vmrun();
 	return 0;
 }
 

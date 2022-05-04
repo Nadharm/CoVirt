@@ -4,6 +4,13 @@
 
 #include "reg_utils.h"
 #include "vmcb.h"
+
+extern void * __global_Host_Reg_Store; 
+extern void * __global_Guest_Reg_Store;
+extern void * __global_VMCB_VA;
+extern phys_addr_t __global_VMCB_PA;
+// extern phys_addr_t __global_VM_HSAVE_PA;
+
 // #include "vmcb.h"
 
 /*
@@ -13,17 +20,24 @@
 	going to be the default "just booted" state. This will essentially be
 	the state of our currently running host.
 */
-static void store_guest_cpu_info(vmcb_t * vmcb){
+static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags){
+	// rip, rsp, rflags, rax are going to be provided as the VMCB will load them
+	// rflags and the other general purpose registers will be saved and restored separately
+	
 	desc_ptr idtr;
 	desc_ptr gdtr;
 
-	// Store CS, RIP
+	// Store CS, RIP [Done]
 	vmcb->state_save_area.cs.selector = get_cs();
+	vmcb->state_save_area.rip = rip;  // RIP
 
-	// Store RFLAGS, RAX
+	// Store RFLAGS, RAX [Done]
+	vmcb->state_save_area.rflags = rflags;  // RFLAGS
+	vmcb->state_save_area.rax = rax;	// RAX
 
-	// Store SS, RSP
+	// Store SS, RSP [Done]
 	vmcb->state_save_area.ss.selector = get_ss();
+	vmcb->state_save_area.rsp = rsp;	// RSP
 
 	// Store CR0, CR2, CR3, CR4, EFER [Done]
 	vmcb->state_save_area.cr0 = get_cr0();
@@ -74,7 +88,7 @@ static void store_guest_cpu_info(vmcb_t * vmcb){
 		- Allocate and initialize the VMCB state-save
 		- Initialize the VMCB Control Area too
 */
-phys_addr_t vmcb_init() {
+phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags) {
 	// Does this need to be "volatile void *"?
     vmcb_t * vmcb_ptr;
 	phys_addr_t phys_vmcb_ptr;
@@ -85,11 +99,15 @@ phys_addr_t vmcb_init() {
 		printk("Failed to allocate VMCB\n");
 		return -1;
 	}
-
+	
 	printk("VMCB allocated at %px\n", vmcb_ptr);
-	store_guest_cpu_info(vmcb_ptr);
+	store_guest_cpu_info(vmcb_ptr, rip, rsp, rax flags);
     // kzfree((const void *) vmcb_ptr);
     phys_vmcb_ptr = virt_to_phys((void *) vmcb_ptr);
+
+	__global_VMCB_VA = (void *) vmcb_ptr; 
+	__global_VMCB_PA = phys_vmcb_ptr;
+
 	return phys_vmcb_ptr;
 }
 

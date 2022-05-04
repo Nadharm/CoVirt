@@ -4,6 +4,8 @@
 
 #include "reg_utils.h"
 #include "svm_utils.h"
+
+extern phys_addr_t __global_VM_HSAVE_PA;
 /*
     Check if this machine is capable of SVM. If not, we can't proceed.
 */
@@ -131,5 +133,7 @@ void init_vm_hsave_pa(void){
 	write_msr(VM_HSAVE_PA_MSR, hi, lo);
 
 	vm_hsave_pa = read_msr(VM_HSAVE_PA_MSR);
+
+	__global_VM_HSAVE_PA = vm_hsave_pa;
 	printk("AFTER CHANGE: VM_HSAVE_PA MSR = %lldx\n", vm_hsave_pa);
 }
