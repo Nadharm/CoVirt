@@ -1,3 +1,11 @@
+.extern vmcb_init
+
+.extern void * __global_Host_Reg_Store; 
+.extern void * __global_Guest_Reg_Store;
+.extern void * __global_VMCB_VA;
+.extern phys_addr_t __global_VMCB_PA;
+.extern phys_addr_t __global_VM_HSAVE_PA;
+
 #define Save_SVM_Registers(location) 	\
 	pushq	%rax; 				\
 	movq	location, %rax;		\
@@ -40,48 +48,6 @@
 	mov	120(%rax), %r15;	\
 	pop	%rax;
 
-extern vmcb_init();
-
-extern void * __global_Host_Reg_Store; 
-extern void * __global_Guest_Reg_Store;
-extern void * __global_VMCB_VA;
-extern phys_addr_t __global_VMCB_PA;
-extern phys_addr_t __global_VM_HSAVE_PA;
-
-
-VM_Setup_and_Run:
-	Save_SVM_Registers(Guest_Reg_Store)	; Saving Guest_Registers (Current Kernel's registers) to guest state (pointed to by %rsi)
-
-	pushq %rbp					;
-	movq %rsp, %rbp				;
-
-	// vmcb_init
-	movq 8(%rbp), %rdi			; [Arg 1] Move Saved Return Address to %rdi
-	leaq (%rbp,8,1), %rsi		; [Arg 2] Move original %rsp to %rsi
-	movq %rax, %rdx				; [Arg 3] Move %rax to %rdx
-	pushfq						; Push RFLAGS
-	popq %rcx					; [Arg 4] Pop RFLAGS into %rcx
-	call vmcb_init				; Initialize the Guest VMCB
-	
-	// VM_HSAVE_PA MSR already setup
-
-	Save_SVM_Registers(__global_Host_Reg_Store);
-
-	Restore_SVM_Registers(__global_Guest_Reg_Store);
-
-	vmload;
-	vmrun;
-	vmsave;
-
-
-	
-
-
-
-
-
-
-
 #define PUSHA				\
 	pushq %rbp;			\
 	pushq %rbx;			\
@@ -107,6 +73,49 @@ VM_Setup_and_Run:
 	popq %rbx;			\
 	popq %rbp;			
 
+
+
+.text
+
+.globl VM_Setup_and_Run
+
+VM_Setup_and_Run:
+	Save_SVM_Registers(__global_Guest_Reg_Store)
+
+	pushq %rbp					//
+	movq %rsp, %rbp				//
+
+	// vmcb_init
+	movq 8(%rbp), %rdi			// [Arg 1] Move Saved Return Address to %rdi
+	leaq 8(%rbp), %rsi		// [Arg 2] Move original %rsp to %rsi
+	movq %rax, %rdx				// [Arg 3] Move %rax to %rdx
+	pushfq						// Push RFLAGS
+	popq %rcx					// [Arg 4] Pop RFLAGS into %rcx
+	call vmcb_init				// Initialize the Guest VMCB
+	
+run_loop:
+	// VM_HSAVE_PA MSR already setup
+
+	Save_SVM_Registers(__global_Host_Reg_Store);
+
+	Restore_SVM_Registers(__global_Guest_Reg_Store);
+
+	movq __global_VMCB_PA, %rax	// Move the VMCB Physical Address into RAX so VMRUN can use it.
+
+	vmload;
+	vmrun;
+	vmsave;
+
+	Save_SVM_Registers(__global_Guest_Reg_Store);
+
+	Restore_SVM_Registers(__global_Host_Reg_Store);
+
+	jmp run_loop 
+
+	// We shouldn't hit here I don't think...
+	movq %rbp, %rsp
+	popq %rbp
+	ret
 
 /*
 

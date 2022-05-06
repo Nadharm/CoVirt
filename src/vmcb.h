@@ -398,7 +398,7 @@ typedef struct vmcb {
 	VMCB Function Declarations
 */
 
-phys_addr_t vmcb_init(void);  // Will perform all set up for the VMCB and return its physical address.
+phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags);  // Will perform all set up for the VMCB and return its physical address.
 
 void debug_vmcb(vmcb_t * vmcb);  // Print out the VMCB contents
 

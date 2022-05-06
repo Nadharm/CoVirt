@@ -13,7 +13,7 @@ void * __global_VMCB_VA;
 phys_addr_t __global_VMCB_PA;
 phys_addr_t __global_VM_HSAVE_PA;
 
-extern void VM_Setup(void * HS_location, void * GS_location);
+extern void VM_Setup_and_Run(void);
 
 static int __init test_init(void) 
 {
@@ -24,10 +24,11 @@ static int __init test_init(void)
 	enable_svm(); // Return 0 on success
 	init_vm_hsave_pa();
 
-	Host_State_Store = kzalloc(128, GFP_KERNEL);  // only need like 128 bytes for now
-	Guest_State_Store = kzalloc(128, GFP_KERNEL);  // only neeed like 128 bytes for now
+	__global_Host_Reg_Store = kzalloc(128, GFP_KERNEL);  // only need like 128 bytes for now
+	__global_Guest_Reg_Store = kzalloc(128, GFP_KERNEL);  // only neeed like 128 bytes for now
 
 	VM_Setup_and_Run();	
+	printk("Hi, we're here!\n");
 	// Maybe we'll have this be a wrapper that hits VMRUN for all CPUs separately.
 	// vmrun();
 	return 0;

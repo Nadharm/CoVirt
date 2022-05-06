@@ -30,7 +30,7 @@ int vm_setup(void){
 	// We'll need to setup the VMCB for every single CPU. Maybe we'll start with a single core CPU.
 	// for_each_cpu(cpu, mask){
 		// init_vm_hsave_pa();
-		phys_vmcb_ptr = vmcb_init();
+		//phys_vmcb_ptr = vmcb_init();
 
 	// We'll need a loop here, right? Handing the VMExits over to a handler.
 	// }

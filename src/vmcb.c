@@ -101,7 +101,7 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	}
 	
 	printk("VMCB allocated at %px\n", vmcb_ptr);
-	store_guest_cpu_info(vmcb_ptr, rip, rsp, rax flags);
+	store_guest_cpu_info(vmcb_ptr, rip, rsp, rax, rflags);
     // kzfree((const void *) vmcb_ptr);
     phys_vmcb_ptr = virt_to_phys((void *) vmcb_ptr);
 
