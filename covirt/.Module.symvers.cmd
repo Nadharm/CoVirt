@@ -1,1 +1,0 @@
-cmd_/home/osiris/CoVirt/covirt/Module.symvers := sed 's/\.ko$$/\.o/' /home/osiris/CoVirt/covirt/modules.order | scripts/mod/modpost    -o /home/osiris/CoVirt/covirt/Module.symvers -e -i Module.symvers   -T -
