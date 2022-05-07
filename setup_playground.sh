@@ -2,6 +2,7 @@
 
 # Taken from Peter's guide. Ty <3
 
+mkdir testing_playground
 cd testing_playground
 export PLAY=`pwd`
 
