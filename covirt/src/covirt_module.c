@@ -2,6 +2,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/slab.h>
+#include <linux/delay.h>
 
 #include "svm_utils.h"
 #include "svm.h"
@@ -27,7 +28,9 @@ static int __init test_init(void)
 	__global_Host_Reg_Store = kzalloc(128, GFP_KERNEL);  // only need like 128 bytes for now
 	__global_Guest_Reg_Store = kzalloc(128, GFP_KERNEL);  // only neeed like 128 bytes for now
 
+	mdelay(3000);
 	VM_Setup_and_Run();	
+	__asm__ __volatile__("nop");
 	printk("Hi, we're here!\n");
 	// Maybe we'll have this be a wrapper that hits VMRUN for all CPUs separately.
 	// vmrun();

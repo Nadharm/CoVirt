@@ -2,7 +2,47 @@
 
 A toy virtual-machine based rootkit designed for Linux Kernel v5.13.0 using AMD-V (SVM).
 
-### TODO:
+## Test/run w/ QEMU
+WARNING: This is going to build a 5.13.0 Linux kernel. Make sure you have enough space.
+
+You'll need QEMU ofc, so go install that first.
+
+Build Linux Kernel, setup initrd w/ BusyBox
+
+IMPORTANT CONFIG:
+
+BusyBox:
+	- Set "Build static binary" to [Y]es
+Linux Kernel:
+	- Set DYNAMIC_DEBUG and DYNAMIC_DEBUG_CORE to [Y]es
+
+```
+./setup_playground.sh
+```
+
+Now, to test the "covirt_module.ko".
+```
+cd covirt
+./test.sh
+```
+
+This will bring up QEMU. I've set "-no-graphic" on, but feel free to change this.
+
+To run the module:
+```
+insmod ./covirt_module.ko
+```
+
+### Debugging stuff
+I'll probably automate this step at some point, but for now...
+
+Before loading the module, within QEMU:
+```
+echo 8 > /proc/sys/kernel/printk
+echo 'file kernel/module.c +p' > /sys/kernel/debug/dynamic_debug/control
+```
+
+## TODO:
 ```
 Stuff that needs to get done ASAP.
 

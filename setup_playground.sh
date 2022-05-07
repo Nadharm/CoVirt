@@ -2,11 +2,7 @@
 
 # Taken from Peter's guide. Ty <3
 
-apt install flex -y
-apt install bison -y
-
-mkdir tinylinux
-cd tinylinux
+cd testing_playground
 export PLAY=`pwd`
 
 wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.13.tar.xz
@@ -38,7 +34,7 @@ mkdir -pv {bin,sbin,etc,proc,sys,usr/{bin,sbin}}
 
 cp -av $PLAY/obj/busybox/_install/* .
 
-wget http://pdinda.org/Stuff/init
+cp $PLAY/init-temp ./init
 
 chmod +x init
 
