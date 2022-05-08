@@ -1,0 +1,14 @@
+#!/bin/sh
+ 
+# add expected pseudofilesystems
+mount -t proc none /proc
+mount -t sysfs none /sys
+
+# necessary for debug options
+mount -t debugfs none /sys/kernel/debug
+
+#indicate we are alive in user space
+echo "Hello Userland"
+ 
+#replace ourselves with a fresh shell
+exec /bin/sh
