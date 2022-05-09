@@ -17,6 +17,56 @@ typedef struct descriptor_ptr {
     uint64_t base;
 } __attribute__((packed)) desc_ptr;
 
+// RFLAGS register, maybe put here?Not sure
+typedef struct rflags_reg {
+    int CF        : 1; //[0] carry flag
+    int rsvd0     : 1; //[1] reserved 
+    int PF        : 1; //[2] Parity Flag
+    int rsvd1     : 1; //[3] reserved
+    int AF        : 1; //[4] Auxiliary Flag
+    int rsvd2     : 1; //[5] reserved
+    int ZF        : 1; //[6] Zero Flag
+    int SF        : 1; //[7] Sign Flag
+    int TF        : 1; //[8] Trap Flag
+    int IF        : 1; //[9] Interrupt Flag
+    int DF        : 1; //[10] Direction Flag
+    int OF        : 1; //[11] Overflow Flag
+    int IOPL      : 2; //[12-13] I/O Privilege Level
+    int NT        : 1; //[14] Nested Task
+    int rsvd3     : 1; //[15] reserved
+    int RF        : 1; //[16] Resume Flag
+    int VM        : 1; //[17] Virtual-8086 Mode
+    int AC        : 1; //[18] Alignment Check
+    int VIF       : 1; //[19] Virtual Interrupt Flag
+    int VIP       : 1; //[20] Virtual Interrupt Pending
+    int ID        : 1; //[21] ID Flag
+    int rsvd4     : 42; //[22-63] reserved
+} __attribute__((packed)) rflags_reg_t;
+
+
+// EFER register, maybe put here?Not sure
+typedef struct efer_reg {
+    int SCE       : 1; //[0] System Call Extensions
+    int rsvd0     : 7; //[1-7] reserved 
+    int LME       : 1; //[8] Long Mode Enable
+    int rsvd1     : 1; //[9] reserved
+    int LMA       : 1; //[10] Long Mode Active
+    int NXE       : 1; //[11] No-Execute Enable
+    int SVME      : 1; //[12] Secure Virtual Machine Enable
+    int LMSLE     : 1; //[13] Long Mode Segment Limit Enable
+    int FFXSR     : 1; //[14] Fast FXSAVE/FXRSTOR
+    int TCE       : 1; //[15] Translation Cache Extension
+    int rsvd2     : 1; //[16] reserved
+    int MCOMMIT   : 1; //[17] Enable MCOMMIT instruction 
+    int INTWB     : 2; //[18] Interruptible WBINVD/WBNOINVD enable
+    int rsvd3     : 1; //[19] reserved
+    int UAIE      : 1; //[20] Upper Address Ignore Enable
+    int rsvd4     : 43; //[21-63] reserved
+} __attribute__((packed)) efer_reg_t;
+
+
+
+
 uint64_t read_msr(uint32_t msr);
 void write_msr(uint32_t msr, uint32_t hi, uint32_t lo);
 
