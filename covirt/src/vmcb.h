@@ -229,7 +229,7 @@ typedef struct control_area {
 	uint64_t rsvd2				: 62; // Reserved, SBZ
 
 	// 0x070
-	uint64_t EXIT_CODE;
+	int64_t EXIT_CODE;
 	uint64_t EXIT_INFO1;
 	uint64_t EXIT_INFO2;
 	uint64_t EXIT_INT_INFO; // TODO: Struct for this
@@ -402,3 +402,4 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 
 void debug_vmcb(vmcb_t * vmcb);  // Print out the VMCB contents
 
+void handle_vmexit(void);

@@ -1,4 +1,5 @@
 .extern vmcb_init
+.extern handle_vmexit
 
 .extern void * __global_Host_Reg_Store; 
 .extern void * __global_Guest_Reg_Store;
@@ -80,6 +81,7 @@
 .globl VM_Setup_and_Run
 
 VM_Setup_and_Run:
+	clgi
 	Save_SVM_Registers(__global_Guest_Reg_Store)
 
 	pushq %rbp					//
@@ -100,15 +102,17 @@ run_loop:
 
 	Restore_SVM_Registers(__global_Guest_Reg_Store);
 
-	movq __global_VMCB_PA, %rax	// Move the VMCB Physical Address into RAX so VMRUN can use it.
+	movq (__global_VMCB_PA), %rax	// Move the VMCB Physical Address into RAX so VMRUN can use it.
 
-	vmload;
+	//vmload;
 	vmrun;
-	vmsave;
+	//vmsave;
 
 	Save_SVM_Registers(__global_Guest_Reg_Store);
 
 	Restore_SVM_Registers(__global_Host_Reg_Store);
+
+	call handle_vmexit
 
 	jmp run_loop 
 

@@ -9,6 +9,10 @@ mount -t debugfs none /sys/kernel/debug
 
 #indicate we are alive in user space
 echo "Hello Userland"
- 
+
+#debugging information
+echo 8 > /proc/sys/kernel/printk
+echo 'file kernel/module.c +p' > /sys/kernel/debug/dynamic_debug/control
+
 #replace ourselves with a fresh shell
 exec /bin/sh

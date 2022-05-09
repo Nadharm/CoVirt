@@ -80,6 +80,8 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 
 	vmcb->state_save_area.cpl = 0;  // Have it run in kernel mode as usual.
 
+	// Setup the guest ASID (can't be 0)
+	vmcb->control_area.guest_asid = 1;
 }
 
 /*
@@ -105,12 +107,21 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
     // kzfree((const void *) vmcb_ptr);
     phys_vmcb_ptr = virt_to_phys((void *) vmcb_ptr);
 
+	printk("Physical VMCB %llx\n", phys_vmcb_ptr);
 	__global_VMCB_VA = (void *) vmcb_ptr; 
 	__global_VMCB_PA = phys_vmcb_ptr;
 
 	return phys_vmcb_ptr;
 }
 
+void handle_vmexit(void){
+	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
+	printk("EXIT CODE: %llx\n", (int64_t) (((char *) vmcb) + 0x70));
+	printk("EXIT INFO1: %llx\n", vmcb->control_area.EXIT_INFO1);
+	printk("EXIT INFO2: %llx\n", vmcb->control_area.EXIT_INFO2);
+	printk("EXIT INT INFO: %llx\n", vmcb->control_area.EXIT_INT_INFO);
+	return;	
+}
 
 void debug_vmcb(vmcb_t * vmcb){
 	printk("----- BEGIN VMCB DEBUG OUTPUT -----\n");

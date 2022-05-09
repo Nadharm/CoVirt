@@ -1,5 +1,7 @@
 # CoVirt
 
+### STATUS: Horribly written + broken beyond belief
+
 A toy virtual-machine based rootkit designed for Linux Kernel v5.13.0 using AMD-V (SVM).
 
 ## Test/run w/ QEMU
@@ -11,10 +13,13 @@ Build Linux Kernel, setup initrd w/ BusyBox
 
 IMPORTANT CONFIG:
 
-BusyBox:
-	- Set "Build static binary" to [Y]es
+BusyBox: 
+"Build static binary" to [Y]
+
 Linux Kernel:
-	- Set DYNAMIC_DEBUG and DYNAMIC_DEBUG_CORE to [Y]es
+DYNAMIC_DEBUG to [Y]es
+DYNAMIC_DEBUG_CORE to [Y]es
+GDB_SCRIPTS to [Y]es
 
 ```
 ./setup_playground.sh
