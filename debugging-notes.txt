@@ -1,0 +1,14 @@
+If you configured the Kernel properly:
+
+- In ~/.gdbinit put the line "add-auto-load-safe-path <path to kernel build>/scripts/gdb/vmlinux-gdb.py
+- To attach GDB to the running kernel:
+	> gdb <path to kernel build>/vmlinux
+	(gdb) target remote : 1234
+- Once you have GDB attached, running "lx-symbols" is super useful (need the vmlinux-gdb.py for this).
+- I already have a 3 second delay after loading the module. This gives you time to do what you want w/ gdb.
+- You can check where the module is being loaded in the dmesg output (I've set it to enable this logging automatically)
+- CLGI is super important. I've put it into the VM_Setup_and_Run routine. This lets you step through the code w/out just hitting the fucking timer interrupts.
+	- CLGI was also important for an atomic VMRUN anyway, I'm just stupid.
+
+
+

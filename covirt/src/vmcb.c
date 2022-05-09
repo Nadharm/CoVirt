@@ -111,12 +111,15 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	__global_VMCB_VA = (void *) vmcb_ptr; 
 	__global_VMCB_PA = phys_vmcb_ptr;
 
+	*((int64_t *)vmcb_ptr + 14) = 0;
+	printk("INIT EC: %lld\n", *((int64_t *)vmcb_ptr + 14));
+	printk("Exit Code location: %px\n", &(vmcb_ptr->control_area.EXIT_CODE));
 	return phys_vmcb_ptr;
 }
 
 void handle_vmexit(void){
 	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
-	printk("EXIT CODE: %llx\n", (int64_t) (((char *) vmcb) + 0x70));
+	printk("EXIT CODE: %lld\n", *((int64_t *)vmcb + 14));
 	printk("EXIT INFO1: %llx\n", vmcb->control_area.EXIT_INFO1);
 	printk("EXIT INFO2: %llx\n", vmcb->control_area.EXIT_INFO2);
 	printk("EXIT INT INFO: %llx\n", vmcb->control_area.EXIT_INT_INFO);

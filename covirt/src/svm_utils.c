@@ -93,7 +93,7 @@ int enable_svm(void){
     // Set EFER.SVME to 1 
 	cur_efer = read_msr(EFER_MSR);
 	printk("Current EFER = %016llx\n", cur_efer);
-	new_efer = cur_efer | SVME;
+	new_efer = cur_efer | _SVME;
 	hi = new_efer & 0xFFFFFFFF00000000;
 	lo = new_efer & 0x00000000FFFFFFFF;
 	write_msr(EFER_MSR, hi, lo);
@@ -101,7 +101,7 @@ int enable_svm(void){
 	
 	cur_efer = read_msr(EFER_MSR);
 	printk("Current EFER = %016llx\n", cur_efer);
-	if (cur_efer & SVME){
+	if (cur_efer & _SVME){
 		printk("EFER.SVME modification SUCCESS!\n");
         return 0;
 	} else {
