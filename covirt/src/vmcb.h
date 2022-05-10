@@ -218,7 +218,7 @@ typedef struct control_area {
 	// 0x058 
 	uint32_t guest_asid;
 	tlb_control_t TLB_CONTROL;
-	char rsvd1[24];
+	uint32_t rsvd1 		: 24;
 
 	// 0x060
 	guest_int_ctrl_t guest_int_ctrl;
@@ -384,7 +384,8 @@ typedef struct state_save_area {
 		uint64_t br_to;
 		uint64_t last_excp_from;
 
-		char rsvd5[72];  // 72 bytes reserved
+		// TODO: Tell AMD their documentation is wrong here lmao.
+		char rsvd5[80];  // 72 bytes reserved
 
 		// 0x2E0
 		uint64_t spec_ctrl;

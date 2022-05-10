@@ -129,6 +129,8 @@ void handle_vmexit(void){
 }
 
 void debug_vmcb(vmcb_t * vmcb){
+	int ssa_offset = 0x400;
+
 	printk("----- BEGIN VMCB DEBUG OUTPUT -----\n");
 	printk("VMCB Virt Addr: %px\n", vmcb);
 	printk("VMCB Phys Addr: %llx\n", virt_to_phys(vmcb));
@@ -187,6 +189,56 @@ void debug_vmcb(vmcb_t * vmcb){
 	check_entry_offset(0x0F8, (uint64_t) &vmcb->control_area.avic_phys_info, "avic_phys_info");
 
 	check_entry_offset(0x108, (uint64_t) &vmcb->control_area.vmsa_info, "vmsa_info");
+
+	printk("Control area kinda done checking... \n");
+
+	check_entry_offset(ssa_offset + 0x000, (uint64_t) &vmcb->state_save_area.es, "es");
+	check_entry_offset(ssa_offset + 0x010, (uint64_t) &vmcb->state_save_area.cs, "cs");
+	check_entry_offset(ssa_offset + 0x020, (uint64_t) &vmcb->state_save_area.ss, "ss");
+	check_entry_offset(ssa_offset + 0x030, (uint64_t) &vmcb->state_save_area.ds, "ds");
+	check_entry_offset(ssa_offset + 0x040, (uint64_t) &vmcb->state_save_area.fs, "fs");
+	check_entry_offset(ssa_offset + 0x050, (uint64_t) &vmcb->state_save_area.gs, "gs");
+	check_entry_offset(ssa_offset + 0x060, (uint64_t) &vmcb->state_save_area.gdtr, "gdtr");
+	check_entry_offset(ssa_offset + 0x070, (uint64_t) &vmcb->state_save_area.ldtr, "ldtr");
+	check_entry_offset(ssa_offset + 0x080, (uint64_t) &vmcb->state_save_area.idtr, "idtr");
+	check_entry_offset(ssa_offset + 0x090, (uint64_t) &vmcb->state_save_area.tr, "tr");
+
+	check_entry_offset(ssa_offset + 0x0CB, (uint64_t) &vmcb->state_save_area.cpl, "cpl");
+
+	check_entry_offset(ssa_offset + 0x0D0, (uint64_t) &vmcb->state_save_area.efer, "efer");
+
+	check_entry_offset(ssa_offset + 0x148, (uint64_t) &vmcb->state_save_area.cr4, "cr4");
+	check_entry_offset(ssa_offset + 0x150, (uint64_t) &vmcb->state_save_area.cr3, "cr3");
+	check_entry_offset(ssa_offset + 0x158, (uint64_t) &vmcb->state_save_area.cr0, "cr0");
+	check_entry_offset(ssa_offset + 0x160, (uint64_t) &vmcb->state_save_area.dr7, "dr7");
+	check_entry_offset(ssa_offset + 0x168, (uint64_t) &vmcb->state_save_area.dr6, "dr6");
+	check_entry_offset(ssa_offset + 0x170, (uint64_t) &vmcb->state_save_area.rflags, "rflags");
+	check_entry_offset(ssa_offset + 0x178, (uint64_t) &vmcb->state_save_area.rip, "rip");
+
+	check_entry_offset(ssa_offset + 0x1D8, (uint64_t) &vmcb->state_save_area.rsp, "rsp");
+	check_entry_offset(ssa_offset + 0x1E0, (uint64_t) &vmcb->state_save_area.s_cet, "s_cet");
+	check_entry_offset(ssa_offset + 0x1E8, (uint64_t) &vmcb->state_save_area.ssp, "ssp");
+	check_entry_offset(ssa_offset + 0x1F0, (uint64_t) &vmcb->state_save_area.isst_addr, "isst_addr");
+	check_entry_offset(ssa_offset + 0x1F8, (uint64_t) &vmcb->state_save_area.rax, "rax");
+	check_entry_offset(ssa_offset + 0x200, (uint64_t) &vmcb->state_save_area.star, "star");
+	check_entry_offset(ssa_offset + 0x208, (uint64_t) &vmcb->state_save_area.lstar, "lstar");
+	check_entry_offset(ssa_offset + 0x210, (uint64_t) &vmcb->state_save_area.cstar, "cstar");
+	check_entry_offset(ssa_offset + 0x218, (uint64_t) &vmcb->state_save_area.sfmask, "sfmask");
+	check_entry_offset(ssa_offset + 0x220, (uint64_t) &vmcb->state_save_area.kernel_gs_base, "kernel_gs_base");
+	check_entry_offset(ssa_offset + 0x228, (uint64_t) &vmcb->state_save_area.sysenter_cs, "sysenter_cs");
+	check_entry_offset(ssa_offset + 0x230, (uint64_t) &vmcb->state_save_area.sysenter_esp, "sysenter_esp");
+	check_entry_offset(ssa_offset + 0x238, (uint64_t) &vmcb->state_save_area.sysenter_eip, "sysenter_eip");
+	check_entry_offset(ssa_offset + 0x240, (uint64_t) &vmcb->state_save_area.cr2, "cr2");
+
+	check_entry_offset(ssa_offset + 0x268, (uint64_t) &vmcb->state_save_area.g_pat, "g_pat");
+	check_entry_offset(ssa_offset + 0x270, (uint64_t) &vmcb->state_save_area.dbgctl, "dbgctl");
+	check_entry_offset(ssa_offset + 0x278, (uint64_t) &vmcb->state_save_area.br_from, "br_from");
+	check_entry_offset(ssa_offset + 0x280, (uint64_t) &vmcb->state_save_area.br_to, "br_to");
+	check_entry_offset(ssa_offset + 0x288, (uint64_t) &vmcb->state_save_area.last_excp_from, "last_excp_from");
+
+	check_entry_offset(ssa_offset + 0x2E0, (uint64_t) &vmcb->state_save_area.spec_ctrl, "spec_ctrl");
+
+	printk("State-save area kinda done checking... \n");
 
 	printk("----- END VMCB DEBUG OUTPUT -----\n");
 }

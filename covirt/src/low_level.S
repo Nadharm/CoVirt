@@ -104,9 +104,9 @@ run_loop:
 
 	movq (__global_VMCB_PA), %rax	// Move the VMCB Physical Address into RAX so VMRUN can use it.
 
-	//vmload;
+	vmload;
 	vmrun;
-	//vmsave;
+	vmsave;
 
 	Save_SVM_Registers(__global_Guest_Reg_Store);
 
