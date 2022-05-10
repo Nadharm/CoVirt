@@ -224,9 +224,11 @@ typedef struct control_area {
 	guest_int_ctrl_t guest_int_ctrl;
 
 	// 0x068
-	int interrupt_shadow 		: 1; // Guest is in an interrupt shadow
-	int guest_interrupt_mask	: 1; // Valud of RFLAGS.IF bit for the guest. Written back to VMCB on VMEXIT.
-	uint64_t rsvd2				: 62; // Reserved, SBZ
+	struct guest_int_shadow_mask {
+		int interrupt_shadow 		: 1; // Guest is in an interrupt shadow
+		int guest_interrupt_mask	: 1; // Valud of RFLAGS.IF bit for the guest. Written back to VMCB on VMEXIT.
+		uint64_t rsvd2				: 62; // Reserved, SBZ
+	} __attribute__((packed)) gisw;
 
 	// 0x070
 	int64_t EXIT_CODE;
@@ -236,29 +238,34 @@ typedef struct control_area {
 
 	// 0x090
 	// I want a struct for this but idk if they're all even related... >:(
-	int NP_Enable 			: 1; // Enable Nested Paging
-	int SEV_Enable			: 1; // Enable Secure Encrypted Virtualization (SEV)
-	int Encrypt_SEV_Enable	: 1; // Enable Encrypted State for SEV
-	int GM_Execute_Trap		: 1; // Guest Mode Execute Trap (huh?)
-	int SSSCheckEn			: 1; // Enable Supervisor Shadow Stack restrictions in Nested PTs. CPUID Fn8000_000A_EDX[19]
-	int Virt_Trans_Encr		: 1; // Virtual Transparent Encryption
-	int rsvd3 				: 1; // Reserved, SBZ
-	int INVLPGB_TLBSYNC_EN	: 1; // Enable INVLPGB + TLBSYNC (If 0 -> #UD on instruction call)
-	uint64_t rsvd4			: 56; // Reserved, SBZ
+	struct misc_enable {
+		int NP_Enable 			: 1; // Enable Nested Paging
+		int SEV_Enable			: 1; // Enable Secure Encrypted Virtualization (SEV)
+		int Encrypt_SEV_Enable	: 1; // Enable Encrypted State for SEV
+		int GM_Execute_Trap		: 1; // Guest Mode Execute Trap (huh?)
+		int SSSCheckEn			: 1; // Enable Supervisor Shadow Stack restrictions in Nested PTs. CPUID Fn8000_000A_EDX[19]
+		int Virt_Trans_Encr		: 1; // Virtual Transparent Encryption
+		int rsvd3 				: 1; // Reserved, SBZ
+		int INVLPGB_TLBSYNC_EN	: 1; // Enable INVLPGB + TLBSYNC (If 0 -> #UD on instruction call)
+		uint64_t rsvd4			: 56; // Reserved, SBZ
+	} __attribute__((packed)) misc_enable;
 
 	// 0x098
-	uint64_t AVIC_APIC_BAR	: 52; // AVIC APIC BAR (idk what this is either) 
-	uint64_t rsvd5			: 12; // I do know that this is reserved, sbz tho!
-
+	struct avic_apic_bar {
+		uint64_t AVIC_APIC_BAR	: 52; // AVIC APIC BAR (idk what this is either) 
+		uint64_t rsvd5			: 12; // I do know that this is reserved, sbz tho!
+	} __attribute__((packed)) avic_apic_bar;
 	// 0x0A0
 	uint64_t GHCB_PA; // Guest Physical Address of GHCB
 	uint64_t EVENTINJ; // Event Injection 
 	uint64_t N_CR3; // Nested page table CR3 to use for nested paging
 
 	//0x0B8
-	int LBR_VIRT_ENABLE		: 1; // 1 - Enable LBR Virtualization hardware acceleration
-	int VIRT_SAVE_LOAD		: 1; // 1 - Enable Virtualized VMSAVE/VMLOAD
-	uint64_t rsvd6			: 62; // Reserved, SBZ
+	struct more_virt_enable_stuff {
+		int LBR_VIRT_ENABLE		: 1; // 1 - Enable LBR Virtualization hardware acceleration
+		int VIRT_SAVE_LOAD		: 1; // 1 - Enable Virtualized VMSAVE/VMLOAD
+		uint64_t rsvd6			: 62; // Reserved, SBZ
+	} __attribute__((packed)) more_ves;
 
 	// 0x0C0
 	uint32_t clean_bits;
@@ -268,34 +275,43 @@ typedef struct control_area {
 	uint64_t nRIP; // Next sequential instruction pointer
 
 	// 0x0D0 (wtf is this)
-	uint8_t num_bytes_fetched;
-	uint8_t guest_instruction_bytes[15]; 
+	struct inst_fetch_info {
+		uint8_t num_bytes_fetched;
+		uint8_t guest_instruction_bytes[15]; 
+	} __attribute__((packed)) instr_fetch_info;
 
 	//0x0E0
-	uint64_t APIC_BACKING_PAGE_PTR	: 52;
-	uint64_t rsvd99					: 12;
+	struct apic_info {
+		uint64_t APIC_BACKING_PAGE_PTR	: 52;
+		uint64_t rsvd99					: 12;
+	} __attribute__((packed)) apic_info;
 
 	//0x0E8
 	char rsvd8[8];
 
 	// 0x0F0
-	uint64_t rsvd9					: 12;
-	uint64_t AVIC_LOGICAL_TABLE_PTR : 40; 
-	uint64_t rsvd10					: 12;
+	struct avic_log_info {
+		uint64_t rsvd9					: 12;
+		uint64_t AVIC_LOGICAL_TABLE_PTR : 40; 
+		uint64_t rsvd10					: 12;
+	} __attribute__((packed)) avic_log_info;
 
 	// 0x0F8
-	uint64_t AVIC_PHYS_MAX_IDX		: 8;
-	uint64_t rsvd11					: 4;
-	uint64_t AVIC_PHYS_TABLE_PTR	: 40;
-	uint64_t rsvd12					: 12;
-
+	struct avic_phys_info {
+		uint64_t AVIC_PHYS_MAX_IDX		: 8;
+		uint64_t rsvd11					: 4;
+		uint64_t AVIC_PHYS_TABLE_PTR	: 40;
+		uint64_t rsvd12					: 12;
+	} __attribute__((packed)) avic_phys_info;
 	// 0x100
 	uint64_t rsvd13;
 
 	// 0x108
-	uint64_t rsvd14					: 12;
-	uint64_t VMSA_PTR				: 40;
-	uint64_t rsvd15					: 12;
+	struct vmsa_info{
+		uint64_t rsvd14					: 12;
+		uint64_t VMSA_PTR				: 40;
+		uint64_t rsvd15					: 12;
+	} __attribute__((packed)) vmsa_info;
 
 	// 0x110 - 0x3DF Reserved, SBZ
 	char rsvd16[720];
@@ -403,3 +419,5 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 void debug_vmcb(vmcb_t * vmcb);  // Print out the VMCB contents
 
 void handle_vmexit(void);
+
+void check_entry_offset(uint16_t offset, uint64_t e_ptr, char * name);

@@ -48,7 +48,7 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	 
 	// Store INTERRUPT_SHADOW
 	
-	vmcb->control_area.interrupt_shadow = 0;  // If I don't know what an interrupt shadow is.. it must not be important O_O
+	vmcb->control_area.gisw.interrupt_shadow = 0;  // If I don't know what an interrupt shadow is.. it must not be important O_O
 
 	// Store IDTR, GDTR [Done]
 	idtr = get_idtr();
@@ -111,18 +111,20 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	__global_VMCB_VA = (void *) vmcb_ptr; 
 	__global_VMCB_PA = phys_vmcb_ptr;
 
-	*((int64_t *)vmcb_ptr + 14) = 0;
-	printk("INIT EC: %lld\n", *((int64_t *)vmcb_ptr + 14));
-	printk("Exit Code location: %px\n", &(vmcb_ptr->control_area.EXIT_CODE));
+	debug_vmcb(__global_VMCB_VA);
+	//*((int64_t *)vmcb_ptr + 14) = 0;
+	// printk("INIT EC: %lld\n", *((int64_t *)vmcb_ptr + 14));
+	// printk("Exit Code location: %px\n", &(vmcb_ptr->control_area.EXIT_CODE));
+	// printk("DR Writes location: %px\n", &(vmcb_ptr->control_area.dr_writes));
 	return phys_vmcb_ptr;
 }
 
 void handle_vmexit(void){
-	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
-	printk("EXIT CODE: %lld\n", *((int64_t *)vmcb + 14));
-	printk("EXIT INFO1: %llx\n", vmcb->control_area.EXIT_INFO1);
-	printk("EXIT INFO2: %llx\n", vmcb->control_area.EXIT_INFO2);
-	printk("EXIT INT INFO: %llx\n", vmcb->control_area.EXIT_INT_INFO);
+	// vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
+	// printk("EXIT CODE: %lld\n", *((int64_t *)vmcb + 14));
+	// printk("EXIT INFO1: %llx\n", vmcb->control_area.EXIT_INFO1);
+	// printk("EXIT INFO2: %llx\n", vmcb->control_area.EXIT_INFO2);
+	// printk("EXIT INT INFO: %llx\n", vmcb->control_area.EXIT_INT_INFO);
 	return;	
 }
 
@@ -130,5 +132,70 @@ void debug_vmcb(vmcb_t * vmcb){
 	printk("----- BEGIN VMCB DEBUG OUTPUT -----\n");
 	printk("VMCB Virt Addr: %px\n", vmcb);
 	printk("VMCB Phys Addr: %llx\n", virt_to_phys(vmcb));
+	// WARNING: I don't actually look inside of the structs of each of these just yet.
+	// This means that the offsets within certain structs could still be wrong.
+	// In other words, these checks are not exhaustive.
+	check_entry_offset(0x000, (uint64_t) &vmcb->control_area.cr_reads, "CR READS");
+	check_entry_offset(0x004, (uint64_t) &vmcb->control_area.dr_reads, "DR READS");
+	check_entry_offset(0x008, (uint64_t) &vmcb->control_area.exception_vectors, "Exception Vectors");
+	check_entry_offset(0x00C, (uint64_t) &vmcb->control_area.instr_intercepts, "Instr Intercepts");
+	check_entry_offset(0x010, (uint64_t) &vmcb->control_area.svm_instr_intercepts, "SVM Instr Intercepts");
+	check_entry_offset(0x014, (uint64_t) &vmcb->control_area.mm_instr_intercepts, "MM Instr Intercepts");
+	check_entry_offset(0x018, (uint64_t) &vmcb->control_area.rsvd0, "RSVD0");
+	check_entry_offset(0x03C, (uint64_t) &vmcb->control_area.pause_filter_threshold, "Pause filter thresh");
+	check_entry_offset(0x03E, (uint64_t) &vmcb->control_area.pause_filter_count, "Pause filter count");
+	check_entry_offset(0x040, (uint64_t) &vmcb->control_area.IOPM_BASE_PA, "IOPM_BASE_PA");
+	check_entry_offset(0x048, (uint64_t) &vmcb->control_area.MSRPM_BASE_PA, "MSRPM_BASE_PA");
+	check_entry_offset(0x050, (uint64_t) &vmcb->control_area.TSC_OFFSET, "TSC_OFFSET");
+
+	check_entry_offset(0x058, (uint64_t) &vmcb->control_area.guest_asid, "guest_asid");
+	check_entry_offset(0x05C, (uint64_t) &vmcb->control_area.TLB_CONTROL, "TLB_CONTROL");
+	
+	check_entry_offset(0x060, (uint64_t) &vmcb->control_area.guest_int_ctrl, "guest_int_ctrl");
+
+	// Made a random struct here for reasons [gisw]
+	check_entry_offset(0x068, (uint64_t) &vmcb->control_area.gisw, "gisw");
+
+	check_entry_offset(0x070, (uint64_t) &vmcb->control_area.EXIT_CODE, "EXIT_CODE");
+	check_entry_offset(0x078, (uint64_t) &vmcb->control_area.EXIT_INFO1, "EXIT_INFO1");
+	check_entry_offset(0x080, (uint64_t) &vmcb->control_area.EXIT_INFO2, "EXIT_INFO2");
+	check_entry_offset(0x088, (uint64_t) &vmcb->control_area.EXIT_INT_INFO, "EXITINTINFO");
+
+	// Made a random struct here for reasons [misc_enable]
+	check_entry_offset(0x090, (uint64_t) &vmcb->control_area.misc_enable, "misc_enable");
+
+	check_entry_offset(0x098, (uint64_t) &vmcb->control_area.avic_apic_bar, "avic_apic_bar");
+	check_entry_offset(0x0A0, (uint64_t) &vmcb->control_area.GHCB_PA, "GHCB_PA");
+
+	check_entry_offset(0x0A8, (uint64_t) &vmcb->control_area.EVENTINJ, "EVENTINJ");
+	check_entry_offset(0x0B0, (uint64_t) &vmcb->control_area.N_CR3, "N_CR3");
+
+	// Made a random struct here for reasons [more_ves]
+	check_entry_offset(0x0B8, (uint64_t) &vmcb->control_area.more_ves, "more_ves");
+
+	check_entry_offset(0x0C0, (uint64_t) &vmcb->control_area.clean_bits, "clean_bits");
+
+	check_entry_offset(0x0C8, (uint64_t) &vmcb->control_area.nRIP, "nRIP");
+
+	// Made a random struct here for reasons [instr_fetch_info]
+	check_entry_offset(0x0D0, (uint64_t) &vmcb->control_area.instr_fetch_info, "instr_fetch_info");
+
+	check_entry_offset(0x0E0, (uint64_t) &vmcb->control_area.apic_info, "apic_info");
+	
+	check_entry_offset(0x0F0, (uint64_t) &vmcb->control_area.avic_log_info, "avic_log_info");
+
+	check_entry_offset(0x0F8, (uint64_t) &vmcb->control_area.avic_phys_info, "avic_phys_info");
+
+	check_entry_offset(0x108, (uint64_t) &vmcb->control_area.vmsa_info, "vmsa_info");
+
 	printk("----- END VMCB DEBUG OUTPUT -----\n");
+}
+
+// A helper we'll use for checking that our VMCB struct is accurate.
+void check_entry_offset(uint16_t offset, uint64_t e_ptr, char * name){
+	// The VMCB is only like 4KB (0x1000) wide. Offsets shouldn't be going past this. 
+	if ((e_ptr & 0xfff) != offset){
+		printk("VMCB_T INCORRECT. %s is at offset 0x%x, should be at 0x%x\n", name, (uint16_t)(e_ptr & 0xfff), offset);
+	}
+	return;
 }
