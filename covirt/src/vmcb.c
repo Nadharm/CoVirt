@@ -29,6 +29,8 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 
 	// Store CS, RIP [Done]
 	vmcb->state_save_area.cs.selector = get_cs();
+	vmcb->state_save_area.cs.attrib = 0x1 << 9;
+	//vmcb->state_save_area.cs.base = 0xffffffffffffffff;
 	vmcb->state_save_area.rip = rip;  // RIP
 
 	// Store RFLAGS, RAX [Done]
@@ -78,7 +80,7 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 
 	// Store CPL [Done]
 
-	vmcb->state_save_area.cpl = 3;  // Have it run in kernel mode as usual.
+	vmcb->state_save_area.cpl = 0;  // Have it run in kernel mode as usual.
 
 	// Setup the guest ASID (can't be 0)
 	vmcb->control_area.guest_asid = 1;
@@ -117,6 +119,11 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 
 	debug_vmcb(__global_VMCB_VA);
 	consistency_checks();
+
+
+	// Test an exit on a CR0 read
+	vmcb_ptr->control_area.cr_reads.CR0 = 1;
+
 	//*((int64_t *)vmcb_ptr + 14) = 0;
 	// printk("INIT EC: %lld\n", *((int64_t *)vmcb_ptr + 14));
 	// printk("Exit Code location: %px\n", &(vmcb_ptr->control_area.EXIT_CODE));
@@ -161,6 +168,8 @@ void consistency_checks(void){
 	//uint64_t cs_long_bit = 0x1UL << (21 + 32);
 	//uint64_t cs_d_bit = 0x1UL << (22 + 32);
 
+	// Just gonna print out the saved RIP
+	printk("Saved RIP: %llx\n", vmcb->state_save_area.rip);
 
 	// EFER.SVME is zero
 	if (!(read_msr(EFER_MSR) & _SVME)){

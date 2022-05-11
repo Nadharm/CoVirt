@@ -47,21 +47,6 @@ echo 8 > /proc/sys/kernel/printk
 echo 'file kernel/module.c +p' > /sys/kernel/debug/dynamic_debug/control
 ```
 
-## TODO:
-```
-Stuff that needs to get done ASAP.
-
-We'll deal with a single-core environment for now.
-
-N:
-    - Set up the state-save area of the VMCB
-    - Store non-VMCB state (such as general purpose registers)
-    - Figure out how to manage RIP to redirect "guest" execution [I think this is done]
-Y:
-    - Look into post-VMEXIT operation. 
-    - Set up the Control Area in the VMCB
-```
-
 Outline for our basic SVM-based hypervisor/vmm implementation (used https://app.diagrams.net to make it :D):
 
 ![Alt text](./CoVirt%20Setup%20Diagram.png?raw=true "CoVirt Setup Diagram")

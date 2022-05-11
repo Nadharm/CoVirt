@@ -6,6 +6,7 @@
 
 #include "svm_utils.h"
 #include "svm.h"
+#include "reg_utils.h"
 
 // Defined as globals for now, this is where we'll store the additional guest + host states
 void * __global_Host_Reg_Store; 
@@ -31,7 +32,9 @@ static int __init test_init(void)
 	mdelay(3000);
 	VM_Setup_and_Run();	
 	__asm__ __volatile__("nop");
-	printk("Hi, we're here!\n");
+	printk("IN GUEST: Hi, we're here!\n");
+	printk("Now triggering a VMEXIT...\n");
+	get_cr0();
 	// Maybe we'll have this be a wrapper that hits VMRUN for all CPUs separately.
 	// vmrun();
 	return 0;
