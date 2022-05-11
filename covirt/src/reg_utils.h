@@ -58,13 +58,11 @@ typedef struct efer_reg {
     uint64_t TCE       : 1; //[15] Translation Cache Extension
     uint64_t rsvd2     : 1; //[16] reserved
     uint64_t MCOMMIT   : 1; //[17] Enable MCOMMIT instruction 
-    uint64_t INTWB     : 2; //[18] Interruptible WBINVD/WBNOINVD enable
+    uint64_t INTWB     : 1; //[18] Interruptible WBINVD/WBNOINVD enable
     uint64_t rsvd3     : 1; //[19] reserved
     uint64_t UAIE      : 1; //[20] Upper Address Ignore Enable
     uint64_t rsvd4     : 43; //[21-63] reserved
 } __attribute__((packed)) efer_reg_t;
-
-
 
 
 uint64_t read_msr(uint32_t msr);

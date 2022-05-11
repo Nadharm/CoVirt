@@ -422,3 +422,5 @@ void debug_vmcb(vmcb_t * vmcb);  // Print out the VMCB contents
 void handle_vmexit(void);
 
 void check_entry_offset(uint16_t offset, uint64_t e_ptr, char * name);
+
+void consistency_checks(void);

@@ -78,7 +78,7 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 
 	// Store CPL [Done]
 
-	vmcb->state_save_area.cpl = 0;  // Have it run in kernel mode as usual.
+	vmcb->state_save_area.cpl = 3;  // Have it run in kernel mode as usual.
 
 	// Setup the guest ASID (can't be 0)
 	vmcb->control_area.guest_asid = 1;
@@ -120,13 +120,78 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 }
 
 void handle_vmexit(void){
-	// vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
-	// printk("EXIT CODE: %lld\n", *((int64_t *)vmcb + 14));
-	// printk("EXIT INFO1: %llx\n", vmcb->control_area.EXIT_INFO1);
-	// printk("EXIT INFO2: %llx\n", vmcb->control_area.EXIT_INFO2);
-	// printk("EXIT INT INFO: %llx\n", vmcb->control_area.EXIT_INT_INFO);
+	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
+	printk("EXIT CODE: %lld\n", *((int64_t *)vmcb + 14));
+	printk("EXIT INFO1: %llx\n", vmcb->control_area.EXIT_INFO1);
+	printk("EXIT INFO2: %llx\n", vmcb->control_area.EXIT_INFO2);
+	printk("EXIT INT INFO: %llx\n", vmcb->control_area.EXIT_INT_INFO);
 	return;	
 }
+
+// This is important for getting VMRUN to go
+void consistency_checks(void){
+	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
+	uint64_t cd_idx = 1 << 30;
+	uint64_t nw_idx = 1 << 29;
+
+	uint64_t cr0 = vmcb->state_save_area.cr0;
+	uint64_t cr3 = vmcb->state_save_area.cr3;
+	uint64_t cr4 = vmcb->state_save_area.cr4;
+	uint64_t dr6 = vmcb->state_save_area.dr6;
+	uint64_t dr7 = vmcb->state_save_area.dr7;
+	efer_reg_t efer_reg = (efer_reg_t) vmcb->state_save_area.efer;
+	uint64_t cr3_mbz = (0xfff << 52) + (0x7f << 5) + 0x7;
+	uint64_t cr4_mbz = (0xffffffff << 32) + (0xFF << 24) + (0x1 << 19) + (0xF << 12);
+
+	// EFER.SVME is zero
+	if (!(read_msr(EFER_MSR) & _SVME)){
+		printk("ERROR: EFER.SVME bit is zero\n");
+	}
+
+	// CR0.CD is zero and CR0.NW is set
+	// CD (Cache Disable) @ [30] 
+	// NW (Not Writethrough) @ [29]
+
+	if (!(cr0 & cd_idx) && (cr0 & nw_idx)){
+		printk("ERROR: CR0.CD and CR0.NW issue\n");
+	}
+
+	// CR0[64:32] are not zero
+	if ((cr0 & (0xFFFFFFFF << 32)) != 0) {
+		printk("ERROR: CR0[63:32] not zero\n");
+	}
+
+	// Any MBZ bit of CR3 is set (gonna check long mode here)
+	if ((cr3 & cr3_mbz) != 0){
+		printk("ERROR: CR3 MBZ bits set\n");
+	}
+
+	// Any MBZ of CR4 set
+	if ((cr4 & cr4_mbz) != 0){
+		printk("ERROR: CR4 MBZ bits set\n");
+	}
+
+	// DR6[63:32] are not zero
+	if (dr6 && (0xffffffff << 32)) {
+		printk("ERROR: DR6[63:32] are not zero\n");
+	}
+
+	// DR7[63:32] are not zero
+	if (dr7 && (0xffffffff << 32)) {
+		printk("ERROR: DR7[63:32] are not zero\n");
+	}
+
+	// Any EFER MBZ Bit of EFER set
+	if (efer_reg.rsvd0 || efer_reg.rsvd1 || efer_reg.rsvd2 || efer_reg.rsvd3 || efer_reg.rsvd4 ) {
+		printk("ERROR: EFER MBZ bits set\n");
+	}
+
+	// THis check is only for if the processor doesn't support long mode.
+	//if ((efer_reg.LMA || efer_reg.LME))
+
+	if (efer_reg.LME && cr0.)
+}
+
 
 void debug_vmcb(vmcb_t * vmcb){
 	int ssa_offset = 0x400;
