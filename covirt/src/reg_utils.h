@@ -92,24 +92,119 @@ typedef union cr0_reg {
 typedef struct cr2_reg {
 } __attribute__((packed)) cr2_reg_t;
 */
+//CR2_reg are used for page-fault linear address, maybe don't need the struct fot this.
+
+
 
 // TODO: CR3 Register (AMD VOL 2, 3.1.2)
 /* 
 typedef struct cr3_reg {
 } __attribute__((packed)) cr3_reg_t;
 */
+//CR3 used for page table
+typedef union cr3_reg {
+    uint64_t val;
+    struct {
+        uint64_t rsvd0      : 3;  //[0-2] reserved
+        uint64_t PWT        : 1;  //[3] Page-Level Writethrough (PWT) Bit. see volume 2 P151
+        uint64_t PCD        : 1;  //[4] Page-Level Cache Disable (PCD) Bit.
+        uint64_t rsvd1      : 7;  //[5-11] reserved
+        uint64_t TBA0       : 20; //[12-31] 4-level table base address 
+        uint64_t TBA1       : 20; //[32-51] 4-level table base address
+        uint64_t rsvd2      : 12;  //[52-63] reserved and MBZ(must be zero)
+    } __attribute__((packed));
+} __attribute__((packed)) cr3_reg_t;
+
+
+
+
+
 
 // TODO: CR4 Register (AMD VOL 2, 3.1.2)
 /*
 typedef struct cr4_reg {
 } __attribute__((packed)) cr4_reg_t;
 */
+//CR4 register
+typedef union cr4_reg {
+    uint64_t val;
+    struct {
+        uint64_t VME        : 1; //[0] Virtual-8086 Mode Extensions
+        uint64_t PVI        : 1; //[1] Protected-Mode Virtual Interrupts
+        uint64_t TSD        : 1; //[2] Time Stamp Disable
+        uint64_t DE         : 1; //[3] Debugging Extensions
+        uint64_t PSE        : 1; //[4] Page Size Extensions
+        uint64_t PAE        : 1; //[5] Physical-Address Extension
+        uint64_t MCE        : 1; //[6] Machine Check Enable
+        uint64_t PGE        : 1; //[7] Page-Global Enable
+        uint64_t PCE        : 1; //[8] Performance-Monitoring Counter Enable
+        uint64_t OSFXSR     : 1; //[9] Operating System FXSAVE/FXRSTOR Support
+        uint64_t OSXMMEXCPT : 1; //[10] Operating System Unmasked Exception Support
+        uint64_t UMIP       : 1; //[11] User Mode Instruction Prevention
+        uint64_t rsvd0      : 4; //[12-15] reserved
+        uint64_t FSGSBASE   : 1; //[16] Enable RDFSBASE, RDGSBASE, WRFSBASE, and WRGSBASE instructions
+        uint64_t PCIDE      : 1; //[17] Process Context Identifier Enable
+        uint64_t OSXSAVE    : 1; //[18] XSAVE and Processor Extended States Enable Bit
+        uint64_t rsvd1      : 1; //[19] reserved
+        uint64_t SMEP       : 1; //[20] Supervisor Mode Execution Prevention
+        uint64_t SMAP       : 1; //[21] Supervisor Mode Access Protection
+        uint64_t PKE        : 1; //[22] Protection Key Enable
+        uint64_t CET        : 1; //[23] Control-flow Enforcement Technology
+        uint64_t rsvd2      : 40; //[24-63] reserved
+    } __attribute__((packed));
+} __attribute__((packed)) cr4_reg_t;
+
+
+
+
+
+
 
 // TODO: CS (Code-Segment) Descriptors (AMD VOL 2, 4.8.1)
-/*
-typedef struct cs_reg {
-} __attribute__((packed)) cs_reg_t;
-*/
+
+//see volume 2 Page 76 
+//cs register has 16bit value which can be loaded to segement selector, this segement selector points to cs descriptor in the GDT(Global descriptor table)
+//for cs
+typedef union seg_sel {
+    uint64_t val;
+    struct {
+        uint64_t RPL    : 2;  //[0-1] Requestor Privilege Level
+        uint64_t TI     : 1;  //[2] Table Indicator TI=0 ->Global, TI=1 ->Local
+        uint64_t SI     : 13; //[3-15]  Selector Index
+    } __attribute__((packed));
+} __attribute__((packed)) seg_sel_t;
+
+// cs descripter has 2 doublwords(32 bits), and when in 64-bit mode only D, L, P, DPL, C works
+typedef union cs_descriptor {
+    uint64_t val;
+    struct {
+        uint64_t SL0    : 16; //[0-15]first doubleword start. SegmentLimit[15:0] 
+        uint64_t BA0    : 16; //[16-31]first doubleword end. Base address[15:0]
+        uint64_t BA1    : 8;  //[0-7]second doubleword start. Base address[23:16]
+        uint64_t A      : 1;  //[8] access
+        uint64_t R      : 1;  //[9] Read
+        uint64_t C      : 1;  //[10] conform
+        uint64_t rsvd0  : 1;  //[11] for Type[8-11] must be 1
+        uint64_t rsvd1  : 1;  //[12] S bit must be 1 
+        uint64_t DPL    : 2;  //[13-14] Descriptor Privilege-Level (DPL) Field.
+        uint64_t P      : 1;  //[15] Present
+        uint64_t SL1    : 4;  //[16-19] SegmentLimit[19:16]
+        uint64_t AVL    : 1;  //[20] Available To Software (AVL) Bit.
+        uint64_t rsvd2  : 1;  //[21] reserved 
+        uint64_t D      : 1;  //[22] Code-Segment Default-Operand Size (D) Bit
+        uint64_t G      : 1;  //[23] Granularity (G) Bit.
+        uint64_t BA2    : 8;  //[24-31]second doubleword end. Base address[31:24]
+    } __attribute__((packed));
+} __attribute__((packed)) cs_descriptor_t;
+
+
+
+
+
+
+
+
+
 
 // TODO: There are other system registers, but idk if we'll need them atm...
 
