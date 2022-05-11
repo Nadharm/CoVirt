@@ -92,7 +92,7 @@ typedef union cr0_reg {
 typedef struct cr2_reg {
 } __attribute__((packed)) cr2_reg_t;
 */
-//CR2_reg are used for page-fault linear address, maybe don't need the struct fot this.
+//CR2_reg are used for page-fault linear address, maybe don't need the struct for this.
 
 
 
@@ -101,7 +101,7 @@ typedef struct cr2_reg {
 typedef struct cr3_reg {
 } __attribute__((packed)) cr3_reg_t;
 */
-//CR3 used for page table
+//CR3 used for page table (this is in long mode)
 typedef union cr3_reg {
     uint64_t val;
     struct {
@@ -141,7 +141,7 @@ typedef union cr4_reg {
         uint64_t OSFXSR     : 1; //[9] Operating System FXSAVE/FXRSTOR Support
         uint64_t OSXMMEXCPT : 1; //[10] Operating System Unmasked Exception Support
         uint64_t UMIP       : 1; //[11] User Mode Instruction Prevention
-        uint64_t rsvd0      : 4; //[12-15] reserved
+        uint64_t rsvd0      : 4; //[12-15] reserved, MBZ(must be zero)
         uint64_t FSGSBASE   : 1; //[16] Enable RDFSBASE, RDGSBASE, WRFSBASE, and WRGSBASE instructions
         uint64_t PCIDE      : 1; //[17] Process Context Identifier Enable
         uint64_t OSXSAVE    : 1; //[18] XSAVE and Processor Extended States Enable Bit
@@ -150,7 +150,7 @@ typedef union cr4_reg {
         uint64_t SMAP       : 1; //[21] Supervisor Mode Access Protection
         uint64_t PKE        : 1; //[22] Protection Key Enable
         uint64_t CET        : 1; //[23] Control-flow Enforcement Technology
-        uint64_t rsvd2      : 40; //[24-63] reserved
+        uint64_t rsvd2      : 40; //[24-63] reserved, MBZ
     } __attribute__((packed));
 } __attribute__((packed)) cr4_reg_t;
 
@@ -166,15 +166,15 @@ typedef union cr4_reg {
 //cs register has 16bit value which can be loaded to segement selector, this segement selector points to cs descriptor in the GDT(Global descriptor table)
 //for cs
 typedef union seg_sel {
-    uint64_t val;
+    uint16_t val;
     struct {
-        uint64_t RPL    : 2;  //[0-1] Requestor Privilege Level
-        uint64_t TI     : 1;  //[2] Table Indicator TI=0 ->Global, TI=1 ->Local
-        uint64_t SI     : 13; //[3-15]  Selector Index
+        uint16_t RPL    : 2;  //[0-1] Requestor Privilege Level
+        uint16_t TI     : 1;  //[2] Table Indicator TI=0 ->Global, TI=1 ->Local
+        uint16_t SI     : 13; //[3-15]  Selector Index
     } __attribute__((packed));
 } __attribute__((packed)) seg_sel_t;
 
-// cs descripter has 2 doublwords(32 bits), and when in 64-bit mode only D, L, P, DPL, C works
+// cs descripter has 2 doublwords(32 bits), and when in 64-bit long mode only D, L, P, DPL, C works
 typedef union cs_descriptor {
     uint64_t val;
     struct {
@@ -190,7 +190,7 @@ typedef union cs_descriptor {
         uint64_t P      : 1;  //[15] Present
         uint64_t SL1    : 4;  //[16-19] SegmentLimit[19:16]
         uint64_t AVL    : 1;  //[20] Available To Software (AVL) Bit.
-        uint64_t rsvd2  : 1;  //[21] reserved 
+        uint64_t L      : 1;  //[21] Long (L) Attribute Bit 
         uint64_t D      : 1;  //[22] Code-Segment Default-Operand Size (D) Bit
         uint64_t G      : 1;  //[23] Granularity (G) Bit.
         uint64_t BA2    : 8;  //[24-31]second doubleword end. Base address[31:24]
