@@ -82,6 +82,10 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 
 	// Setup the guest ASID (can't be 0)
 	vmcb->control_area.guest_asid = 1;
+
+	// Set VMRUN intercept bit to 1
+	vmcb->control_area.svm_instr_intercepts.VMRUN = 1;
+	printk("VMCB SVM INSTR INTERCEPTS: %lx\n", vmcb->control_area.svm_instr_intercepts.val);
 }
 
 /*
@@ -112,6 +116,7 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	__global_VMCB_PA = phys_vmcb_ptr;
 
 	debug_vmcb(__global_VMCB_VA);
+	consistency_checks();
 	//*((int64_t *)vmcb_ptr + 14) = 0;
 	// printk("INIT EC: %lld\n", *((int64_t *)vmcb_ptr + 14));
 	// printk("Exit Code location: %px\n", &(vmcb_ptr->control_area.EXIT_CODE));
@@ -130,18 +135,32 @@ void handle_vmexit(void){
 
 // This is important for getting VMRUN to go
 void consistency_checks(void){
-	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
-	uint64_t cd_idx = 1 << 30;
-	uint64_t nw_idx = 1 << 29;
+	// YES I KNOW THIS IS UGLY AF
+	// I DONT CARE I JUST WANT IT TO WORK
 
-	uint64_t cr0 = vmcb->state_save_area.cr0;
+	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
+	
 	uint64_t cr3 = vmcb->state_save_area.cr3;
+
 	uint64_t cr4 = vmcb->state_save_area.cr4;
+	uint64_t cr4_pae_bit = 0x1UL << 5;
+	uint64_t cr4_cet_bit = 0x1UL << 23;
+
 	uint64_t dr6 = vmcb->state_save_area.dr6;
 	uint64_t dr7 = vmcb->state_save_area.dr7;
-	efer_reg_t efer_reg = (efer_reg_t) vmcb->state_save_area.efer;
-	uint64_t cr3_mbz = (0xfff << 52) + (0x7f << 5) + 0x7;
-	uint64_t cr4_mbz = (0xffffffff << 32) + (0xFF << 24) + (0x1 << 19) + (0xF << 12);
+	uint64_t cr3_mbz = (0xfffUL << 52) + (0x7fUL << 5) + 0x7;
+	uint64_t cr4_mbz = (0xffffffffUL << 32) + (0xFFUL << 24) + (0x1UL << 19) + (0xFUL << 12);
+
+	cr0_reg_t cr0;
+	cr0.val = vmcb->state_save_area.cr0;
+
+	efer_reg_t efer_reg;
+	efer_reg.val = vmcb->state_save_area.efer;
+
+	//uint64_t cs = (vmcb->state_save_area.cs);cs
+	//uint64_t cs_long_bit = 0x1UL << (21 + 32);
+	//uint64_t cs_d_bit = 0x1UL << (22 + 32);
+
 
 	// EFER.SVME is zero
 	if (!(read_msr(EFER_MSR) & _SVME)){
@@ -152,12 +171,12 @@ void consistency_checks(void){
 	// CD (Cache Disable) @ [30] 
 	// NW (Not Writethrough) @ [29]
 
-	if (!(cr0 & cd_idx) && (cr0 & nw_idx)){
+	if ((cr0.CD == 0) && (cr0.NW)){
 		printk("ERROR: CR0.CD and CR0.NW issue\n");
 	}
 
 	// CR0[64:32] are not zero
-	if ((cr0 & (0xFFFFFFFF << 32)) != 0) {
+	if (cr0.rsvd3 != 0) {
 		printk("ERROR: CR0[63:32] not zero\n");
 	}
 
@@ -172,12 +191,12 @@ void consistency_checks(void){
 	}
 
 	// DR6[63:32] are not zero
-	if (dr6 && (0xffffffff << 32)) {
+	if (dr6 && (0xffffffffUL << 32)) {
 		printk("ERROR: DR6[63:32] are not zero\n");
 	}
 
 	// DR7[63:32] are not zero
-	if (dr7 && (0xffffffff << 32)) {
+	if (dr7 && (0xffffffffUL << 32)) {
 		printk("ERROR: DR7[63:32] are not zero\n");
 	}
 
@@ -189,10 +208,72 @@ void consistency_checks(void){
 	// THis check is only for if the processor doesn't support long mode.
 	//if ((efer_reg.LMA || efer_reg.LME))
 
-	if (efer_reg.LME && cr0.)
+	// EFER.LME and CR0.PG are both set and CR4.PAE is zero
+	if ((efer_reg.LME && cr0.PG && !(cr4 & cr4_pae_bit))) {
+		printk("ERROR: LME + PG = 1 and CR4.PAE = 0\n");
+	}
+
+	// EFER.LME and CR0.PG are both non-zero and CR0.PE is zero
+	if ((efer_reg.LME && cr0.PG) && !(cr0.PE)) {
+		printk("ERROR: LME + PG = 1 and CR0.PE = 0\n");
+	}
+
+	/*
+	// EFER.LME, CR0.PG, CR4.PAE, CS.L, and CS.D are all non-zero
+	if (efer_reg.LME && cr0.PG && (cr4 & cr4_pae_bit) && (cs & cs_long_bit) && (cs & cs_d_bit)) {
+		printk("ERROR: EFER.LME, CR0.PG, CR4.PAE, CS.L, and CS.D are all non-zero\n");
+	}
+	*/
+
+	// The VMRUN intercept bit is clear.
+	if (vmcb->control_area.svm_instr_intercepts.VMRUN != 1) {
+		printk("ERROR: The VMRUN intercept bit is clear.\n");
+		printk("VMCB VMRUN INTERCEPT BIT: %d\n", vmcb->control_area.svm_instr_intercepts.VMRUN);
+	}
+
+	// I've got absolutely no clue what these two are. Will do them tomorrow :D
+	// TODO: The MSR or IOIO intercept tables extend to a physical address that is greater than or equal to the maximum supported physical address
+	// TODO: Illegal event injection (section 15.20)
+
+	// ASID is equal to zero.
+	if (vmcb->control_area.guest_asid == 0){
+		printk("ERROR: ASID is equal to zero.\n");
+	}
+
+	// TODO: WIll need to make this cleaner ofc...
+	// Any reserved bit is set in S_CET
+	if (vmcb->state_save_area.s_cet & 0xfffffffffffffffc) {
+		printk("Reserved bit of S_CET set\n");
+	}
+
+	// CR4.CET=1 when CR0.WP=0
+	if ((cr4 & cr4_cet_bit) && !(cr0.WP)){
+		printk("ERROR: CR4.CET=1 when CR0.WP=0\n");
+	}
+
+	// TODO: CR4.CET=1 and U_CET.SS=1 when EFLAGS.VM=1
+
+	/* TODO:
+	• any reserved bit set in U_CET (SEV_ES only):
+		- VMRUN results in VMEXIT(INVALID)
+		- VMEXIT forces reserved bits to 0
+	*/
+
+	/* NOTES:
+	VMRUN can load a guest value of CR0 with PE = 0 but PG = 1, a combination that is otherwise illegal
+	(see Section 15.19).
+	In addition to consistency checks, VMRUN and #VMEXIT canonicalize (i.e., sign-extend to bit 63):
+		• All base addresses in the segment registers that have been loaded.
+		• SSP
+		• ISST_ADDR
+		• PL0_SSP, PL1_SSP, PL2_SSP, PL3_SSP
+	*/
 }
 
-
+// YES, THIS IS REDUNDANT. I COULD'VE JUST MADE SURE MY STRUCTS WERE WELL MADE
+// BUT I DON'T TRUST MYSELF. Now... do i trust myself to write accurate test cases? No.
+// SO that doesn't really fix the problem then does it. No.
+// awesome.
 void debug_vmcb(vmcb_t * vmcb){
 	int ssa_offset = 0x400;
 
