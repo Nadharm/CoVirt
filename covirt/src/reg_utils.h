@@ -220,6 +220,7 @@ uint64_t get_cr4(void);
 desc_ptr get_idtr(void);
 desc_ptr get_gdtr(void);
 ldtr_t get_ldtr(desc_ptr gdtr);
+uint64_t get_descriptor(seg_sel_t seg_sel);
 
 uint16_t get_cs(void);
 uint16_t get_es(void);

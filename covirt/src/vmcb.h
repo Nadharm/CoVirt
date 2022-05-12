@@ -427,3 +427,5 @@ void handle_vmexit(void);
 void check_entry_offset(uint16_t offset, uint64_t e_ptr, char * name);
 
 void consistency_checks(void);
+
+segment_t format_segment(uint64_t descriptor, uint16_t selector);

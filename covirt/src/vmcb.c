@@ -27,9 +27,27 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	desc_ptr idtr;
 	desc_ptr gdtr;
 
+	// Code Segment
+	seg_sel_t cs_sel;
+
+	// Data Segment
+	seg_sel_t ds_sel;
+	seg_sel_t es_sel;
+	seg_sel_t fs_sel;
+	seg_sel_t gs_sel;
+
+	// Stack Segment (This one's a bit weird)
+	seg_sel_t ss_sel;
+
+	cs_sel.val = get_cs();
+	ds_sel.val = get_ds();
+	es_sel.val = get_es();
+	//fs_sel.val = get_fs();
+	//gs_sel.val = get_gs();
+	ss_sel.val = get_ss();
+
 	// Store CS, RIP [Done]
-	vmcb->state_save_area.cs.selector = get_cs();
-	vmcb->state_save_area.cs.attrib = 0x1 << 9;
+	vmcb->state_save_area.cs = format_segment(get_descriptor(cs_sel), cs_sel.val);
 	//vmcb->state_save_area.cs.base = 0xffffffffffffffff;
 	vmcb->state_save_area.rip = rip;  // RIP
 
@@ -63,8 +81,10 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 
 	// Store ES and DS [Not fully done, we'll need to modify the get_es and get_ds functions]
 
-	vmcb->state_save_area.es.selector = get_es();
-	vmcb->state_save_area.ds.selector = get_ds();
+	// vmcb->state_save_area.es.selector = get_es();
+	vmcb->state_save_area.es = format_segment(get_descriptor(es_sel), es_sel.val);
+	// vmcb->state_save_area.ds.selector = get_ds();
+	vmcb->state_save_area.ds = format_segment(get_descriptor(ds_sel), ds_sel.val);
 	
 	// Store DR6 and DR7 [Done]
 	vmcb->state_save_area.dr6 = get_dr6();
@@ -406,3 +426,43 @@ void check_entry_offset(uint16_t offset, uint64_t e_ptr, char * name){
 	}
 	return;
 }
+
+
+segment_t format_segment(uint64_t descriptor, uint16_t selector) {
+	segment_t formatted_segment;
+	
+	// Attribute Mask (lower and higher parts)
+	uint64_t a_mask_lo = 0xffUL << (32 + 8);  // Original pos offset = 40
+	uint16_t a_shift_lo = 40;  // For concatenation, we need to shift this back down
+	uint64_t a_mask_hi = 0xfUL << (32 + 20); 	// Original pos offset = 52
+	uint16_t a_shift_hi = 44;  // For concatenation, shift back (52 - 8), accounting for the low bits
+
+	// Limit Mask (lower and higher parts)
+	uint64_t l_mask_lo = 0xffffUL;	// Original pos offset = 0
+	uint16_t l_shift_lo = 0;
+	uint64_t l_mask_hi = 0xfUL << (32 + 16);	// Original pos offset = 48
+	uint64_t l_shift_hi = 32;	// For concatenation, shift back (48 - 16), accounting for low bits
+
+
+	// Base Mask (lower and higher parts)
+	uint64_t b_mask_lo = 0xffffffUL << 32;	// Original Pos offset = 32;
+	uint64_t b_shift_lo = 32;
+	uint64_t b_mask_hi = 0xffffffffUL << (32 + 24);	// Original pos offset = 56
+	uint64_t b_shift_hi	= 24;
+
+	// We'll have the selector already as this is what is stored in the segment register
+	formatted_segment.selector = selector;
+
+	// Get attributes
+	formatted_segment.attrib = (uint16_t) (((descriptor & a_mask_lo) >> a_shift_lo) + ((descriptor & a_mask_hi) >> a_shift_hi));
+
+	// Get limit
+	formatted_segment.limit = (uint32_t) (((descriptor & l_mask_lo) >> l_shift_lo) + ((descriptor & l_mask_hi) >> l_shift_hi));
+
+	// Get Base 
+	formatted_segment.base = (uint64_t) (((descriptor & b_mask_lo) >> b_shift_lo) + ((descriptor & b_mask_hi) >> b_shift_hi));
+
+	return formatted_segment;
+}
+
+// Will need to proces the Stack Segment separately (It's 128 bits and doesn't have the same format)
