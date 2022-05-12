@@ -17,6 +17,13 @@ typedef struct descriptor_ptr {
     uint64_t base;
 } __attribute__((packed)) desc_ptr;
 
+typedef struct ldtr {
+    uint16_t selector;
+    uint16_t attributes;
+    uint32_t limit;
+    uint64_t base;
+} __attribute__((packed)) ldtr_t;
+
 // RFLAGS register, maybe put here?Not sure
 typedef struct rflags_reg {
     uint64_t CF        : 1; //[0] carry flag
@@ -199,13 +206,6 @@ typedef union cs_descriptor {
 
 
 
-
-
-
-
-
-
-
 // TODO: There are other system registers, but idk if we'll need them atm...
 
 
@@ -219,6 +219,7 @@ uint64_t get_cr4(void);
 
 desc_ptr get_idtr(void);
 desc_ptr get_gdtr(void);
+ldtr_t get_ldtr(desc_ptr gdtr);
 
 uint16_t get_cs(void);
 uint16_t get_es(void);

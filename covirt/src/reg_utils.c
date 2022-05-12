@@ -45,20 +45,6 @@ uint64_t get_cr4(void)
 	return cr4;
 }
 
-desc_ptr get_idtr(void)
-{
-	desc_ptr idtr;
-	__asm__ __volatile__("sidt %0" : "=m"(idtr));
-	return idtr;
-}
-
-desc_ptr get_gdtr(void)
-{
-	desc_ptr gdtr;
-	__asm__ __volatile__("sgdt %0" : "=m"(gdtr));
-	return gdtr;
-}
-
 uint16_t get_es(void){
  	uint16_t es;
 	__asm__ __volatile__("mov %%es, %0" : "=m"(es));
@@ -102,6 +88,57 @@ uint8_t get_vtpr(void){
 	return vtpr;
 }
 
+
+desc_ptr get_idtr(void)
+{
+	desc_ptr idtr;
+	__asm__ __volatile__("sidt %0" : "=m"(idtr));
+	return idtr;
+}
+
+desc_ptr get_gdtr(void)
+{
+	desc_ptr gdtr;
+	__asm__ __volatile__("sgdt %0" : "=m"(gdtr));
+	return gdtr;
+}
+
+ldtr_t get_ldtr(desc_ptr gdtr)
+{
+	seg_sel_t seg_sel;
+	ldtr_t * full_ldtr_ptr;
+	ldtr_t full_ldtr;
+	// This will load the seg-selector for LDTR into seg_sel
+	__asm__ __volatile__("sldt %0" : "=m"(seg_sel));
+
+	uint16_t selector_index = seg_sel.SI << 3; 
+	full_ldtr_ptr = (ldtr_t *) (gdtr.base + selector_index);
+	full_ldtr = *full_ldtr_ptr;
+	return full_ldtr;
+}
+
 // uint8_t get_virq(void){
 // 	return 0;  // For now
 // }
+
+
+// Segment Descriptor Operations (NOT REGISTERS)
+
+// This could be done a little bit better because we already grab the gdtr and ldtr for the VMCB.
+// Whatever, doesn't matter. 
+uint64_t get_descriptor(seg_sel_t seg_sel){
+	// We'll just return 
+	desc_ptr gdtr = get_gdtr();
+	uint16_t selector_index = seg_sel.SI << 3;  // This will be the offset into the descriptor table.
+	long * descriptor_ptr;  // Keep getting a dumb error regarding the uint64_t pointer, so i'm using a long (8 bytes)
+	if (seg_sel.TI == 0){
+		// Table Index == 0 => Global descriptor table
+		descriptor_ptr = (long *) gdtr.base + selector_index;
+		return (uint64_t) *descriptor_ptr;
+	} else {
+		// Table Index == 1 => Local Descriptor Table
+		ldtr_t ldtr = get_ldtr(gdtr);
+		descriptor_ptr = (long *) (ldtr.base + selector_index);
+		return (uint64_t) *descriptor_ptr;
+	}
+}
