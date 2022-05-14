@@ -26,7 +26,8 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	
 	desc_ptr idtr;
 	desc_ptr gdtr;
-	ldtr_t ldtr;
+	sys_desc_t ldtr;
+	sys_desc_t tr;
 
 	// Code Segment
 	seg_sel_t cs_sel;
@@ -78,12 +79,6 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	printk("\nGDTR BASE: %llx\n\n", gdtr.base);
 	vmcb->state_save_area.gdtr.limit = gdtr.limit;
 
-	ldtr = get_ldtr(gdtr);
-	vmcb->state_save_area.ldtr.attrib = ldtr.attributes;
-	vmcb->state_save_area.ldtr.base = ldtr.base;
-	vmcb->state_save_area.ldtr.limit = ldtr.limit;
-	vmcb->state_save_area.ldtr.selector = ldtr.selector;
-
 	// Store ES and DS
 
 	vmcb->state_save_area.es = format_segment(get_descriptor(es_sel), es_sel.val);
@@ -116,6 +111,33 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	// Set VMRUN intercept bit to 1
 	vmcb->control_area.svm_instr_intercepts.VMRUN = 1;
 	//printk("VMCB SVM INSTR INTERCEPTS: %lx\n", vmcb->control_area.svm_instr_intercepts.val);
+
+	// Stuff for VMLOAD + VMSAVE
+	vmcb->state_save_area.star = read_msr(STAR_MSR);
+	vmcb->state_save_area.lstar	= read_msr(LSTAR_MSR);
+	vmcb->state_save_area.cstar = read_msr(CSTAR_MSR);
+	vmcb->state_save_area.sfmask = read_msr(SFMASK_MSR);
+
+	vmcb->state_save_area.kernel_gs_base = read_msr(KernelGSBase_MSR);
+
+	vmcb->state_save_area.sysenter_cs = read_msr(SYSENTER_CS_MSR);
+	vmcb->state_save_area.sysenter_esp = read_msr(SYSENTER_ESP_MSR);
+	vmcb->state_save_area.sysenter_eip = read_msr(SYSENTER_EIP_MSR);
+
+	// System Descriptor Stuff
+	ldtr = get_ldtr(gdtr);
+	vmcb->state_save_area.ldtr.attrib = ldtr.attributes;
+	vmcb->state_save_area.ldtr.base = ldtr.base;
+	vmcb->state_save_area.ldtr.limit = ldtr.limit;
+	vmcb->state_save_area.ldtr.selector = ldtr.selector;
+
+	// tr = get_tr(gdtr);
+	// vmcb->state_save_area.tr.attrib = tr.attributes;
+	// vmcb->state_save_area.tr.base = tr.base;
+	// vmcb->state_save_area.tr.limit = tr.limit;
+	// vmcb->state_save_area.tr.selector = tr.selector;
+
+
 }
 
 /*
@@ -473,4 +495,3 @@ segment_t format_segment(uint64_t descriptor, uint16_t selector) {
 	return formatted_segment;
 }
 
-// Will need to proces the Stack Segment separately (It's 128 bits and doesn't have the same format)

@@ -11,18 +11,37 @@
 #define VMCR_Lock 1 << 3  // Lock bit in VM_CR MSR
 #define _SVME 1 << 12  // EFER.SVME Bit
 
+// SYSCALL and SYSRET MSRs
+#define STAR_MSR    0xC0000081
+#define LSTAR_MSR   0xC0000082
+#define CSTAR_MSR   0xC0000083
+#define SFMASK_MSR  0xC0000084
+
+// SYSENTER and SYSEXIT (Legacy Mode Only)
+#define SYSENTER_CS_MSR     0x174
+#define SYSENTER_ESP_MSR    0x175
+#define SYSENTER_EIP_MSR    0x176
+
+// Used for SWAPGS
+#define KernelGSBase_MSR    0xC0000102
+
 // Should probably use Linux's desc_ptr but idk who cares
 typedef struct descriptor_ptr {
     uint16_t limit;
     uint64_t base;
 } __attribute__((packed)) desc_ptr;
 
-typedef struct ldtr {
+typedef struct __128bit {
+    uint64_t low;
+    uint64_t high;
+} __attribute__((packed)) __128bit_t;
+
+typedef struct sys_desc {
     uint16_t selector;
     uint16_t attributes;
     uint32_t limit;
     uint64_t base;
-} __attribute__((packed)) ldtr_t;
+} __attribute__((packed)) sys_desc_t;
 
 // RFLAGS register, maybe put here?Not sure
 typedef struct rflags_reg {
@@ -220,7 +239,8 @@ uint64_t get_cr4(void);
 
 desc_ptr get_idtr(void);
 desc_ptr get_gdtr(void);
-ldtr_t get_ldtr(desc_ptr gdtr);
+sys_desc_t get_ldtr(desc_ptr gdtr);
+sys_desc_t get_tr(desc_ptr gdtr);
 uint64_t get_descriptor(seg_sel_t seg_sel);
 
 uint16_t get_cs(void);

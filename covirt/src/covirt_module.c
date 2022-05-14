@@ -31,7 +31,7 @@ static int __init test_init(void)
 
 	mdelay(3000);
 	VM_Setup_and_Run();	
-	__asm__ __volatile__("nop");
+	__asm__ __volatile__("clgi");
 	printk("IN GUEST: Hi, we're here!\n");
 	printk("Now triggering a VMEXIT...\n");
 	//get_cr0();
