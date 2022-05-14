@@ -34,7 +34,7 @@ static int __init test_init(void)
 	__asm__ __volatile__("nop");
 	printk("IN GUEST: Hi, we're here!\n");
 	printk("Now triggering a VMEXIT...\n");
-	get_cr0();
+	//get_cr0();
 	// Maybe we'll have this be a wrapper that hits VMRUN for all CPUs separately.
 	// vmrun();
 	return 0;

@@ -69,6 +69,18 @@ uint16_t get_cs(void){
 	return cs;
 }
 
+uint16_t get_fs(void){
+ 	uint16_t fs;
+	__asm__ __volatile__("mov %%fs, %0" : "=m"(fs));
+	return fs;
+}
+
+uint16_t get_gs(void){
+ 	uint16_t gs;
+	__asm__ __volatile__("mov %%gs, %0" : "=m"(gs));
+	return gs;
+}
+
 uint64_t get_dr6(void) {
 	uint64_t dr6;
 	__asm__ __volatile__("mov %%dr6, %0": "=a"(dr6));
@@ -129,11 +141,14 @@ ldtr_t get_ldtr(desc_ptr gdtr)
 uint64_t get_descriptor(seg_sel_t seg_sel){
 	// We'll just return 
 	desc_ptr gdtr = get_gdtr();
-	uint16_t selector_index = seg_sel.SI << 3;  // This will be the offset into the descriptor table.
+	uint16_t selector_index = seg_sel.val & 0xfff8;  // This will be the offset into the descriptor table.
 	long * descriptor_ptr;  // Keep getting a dumb error regarding the uint64_t pointer, so i'm using a long (8 bytes)
 	if (seg_sel.TI == 0){
 		// Table Index == 0 => Global descriptor table
-		descriptor_ptr = (long *) gdtr.base + selector_index;
+		descriptor_ptr = (long *) (gdtr.base + selector_index);
+		// printk("GDTR BASE: %llx\n", gdtr.base);
+		// printk("Selector Index: %d\n", selector_index);
+		// printk("Descriptor: %llx\n", *descriptor_ptr);
 		return (uint64_t) *descriptor_ptr;
 	} else {
 		// Table Index == 1 => Local Descriptor Table

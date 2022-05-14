@@ -81,8 +81,8 @@
 .globl VM_Setup_and_Run
 
 VM_Setup_and_Run:
-	clgi
 	Save_SVM_Registers(__global_Guest_Reg_Store)
+	clgi
 
 	pushq %rbp					//
 	movq %rsp, %rbp				//
@@ -94,6 +94,7 @@ VM_Setup_and_Run:
 	pushfq						// Push RFLAGS
 	popq %rcx					// [Arg 4] Pop RFLAGS into %rcx
 	call vmcb_init				// Initialize the Guest VMCB
+
 	
 run_loop:
 	// VM_HSAVE_PA MSR already setup
@@ -104,9 +105,9 @@ run_loop:
 
 	movq (__global_VMCB_PA), %rax	// Move the VMCB Physical Address into RAX so VMRUN can use it.
 
-	//vmload;
+	vmload;
 	vmrun;
-	//vmsave;
+	vmsave;
 
 	Save_SVM_Registers(__global_Guest_Reg_Store);
 

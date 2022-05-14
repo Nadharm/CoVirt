@@ -26,6 +26,7 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	
 	desc_ptr idtr;
 	desc_ptr gdtr;
+	ldtr_t ldtr;
 
 	// Code Segment
 	seg_sel_t cs_sel;
@@ -35,28 +36,25 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	seg_sel_t es_sel;
 	seg_sel_t fs_sel;
 	seg_sel_t gs_sel;
-
-	// Stack Segment (This one's a bit weird)
 	seg_sel_t ss_sel;
 
 	cs_sel.val = get_cs();
 	ds_sel.val = get_ds();
 	es_sel.val = get_es();
-	//fs_sel.val = get_fs();
-	//gs_sel.val = get_gs();
+	fs_sel.val = get_fs();
+	gs_sel.val = get_gs();
 	ss_sel.val = get_ss();
 
 	// Store CS, RIP [Done]
 	vmcb->state_save_area.cs = format_segment(get_descriptor(cs_sel), cs_sel.val);
-	//vmcb->state_save_area.cs.base = 0xffffffffffffffff;
 	vmcb->state_save_area.rip = rip;  // RIP
 
 	// Store RFLAGS, RAX [Done]
 	vmcb->state_save_area.rflags = rflags;  // RFLAGS
 	vmcb->state_save_area.rax = rax;	// RAX
 
-	// Store SS, RSP [Done]
-	vmcb->state_save_area.ss.selector = get_ss();
+	// Store SS, RSP
+	vmcb->state_save_area.ss = format_segment(get_descriptor(ss_sel), ss_sel.val);
 	vmcb->state_save_area.rsp = rsp;	// RSP
 
 	// Store CR0, CR2, CR3, CR4, EFER [Done]
@@ -77,15 +75,25 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 
 	gdtr = get_gdtr();
 	vmcb->state_save_area.gdtr.base = gdtr.base;
+	printk("\nGDTR BASE: %llx\n\n", gdtr.base);
 	vmcb->state_save_area.gdtr.limit = gdtr.limit;
 
-	// Store ES and DS [Not fully done, we'll need to modify the get_es and get_ds functions]
+	ldtr = get_ldtr(gdtr);
+	vmcb->state_save_area.ldtr.attrib = ldtr.attributes;
+	vmcb->state_save_area.ldtr.base = ldtr.base;
+	vmcb->state_save_area.ldtr.limit = ldtr.limit;
+	vmcb->state_save_area.ldtr.selector = ldtr.selector;
 
-	// vmcb->state_save_area.es.selector = get_es();
+	// Store ES and DS
+
 	vmcb->state_save_area.es = format_segment(get_descriptor(es_sel), es_sel.val);
-	// vmcb->state_save_area.ds.selector = get_ds();
 	vmcb->state_save_area.ds = format_segment(get_descriptor(ds_sel), ds_sel.val);
 	
+	// Store FS and GS
+
+	vmcb->state_save_area.fs = format_segment(get_descriptor(fs_sel), fs_sel.val);
+	vmcb->state_save_area.gs = format_segment(get_descriptor(gs_sel), gs_sel.val);
+
 	// Store DR6 and DR7 [Done]
 	vmcb->state_save_area.dr6 = get_dr6();
 	vmcb->state_save_area.dr7 = get_dr7();
@@ -107,7 +115,7 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 
 	// Set VMRUN intercept bit to 1
 	vmcb->control_area.svm_instr_intercepts.VMRUN = 1;
-	printk("VMCB SVM INSTR INTERCEPTS: %lx\n", vmcb->control_area.svm_instr_intercepts.val);
+	//printk("VMCB SVM INSTR INTERCEPTS: %lx\n", vmcb->control_area.svm_instr_intercepts.val);
 }
 
 /*
@@ -142,7 +150,7 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 
 
 	// Test an exit on a CR0 read
-	vmcb_ptr->control_area.cr_reads.CR0 = 1;
+	// vmcb_ptr->control_area.cr_reads.CR0 = 1;
 
 	//*((int64_t *)vmcb_ptr + 14) = 0;
 	// printk("INIT EC: %lld\n", *((int64_t *)vmcb_ptr + 14));
@@ -255,7 +263,7 @@ void consistency_checks(void){
 	*/
 
 	// The VMRUN intercept bit is clear.
-	if (vmcb->control_area.svm_instr_intercepts.VMRUN != 1) {
+	if (vmcb->control_area.svm_instr_intercepts.VMRUN == 0) {
 		printk("ERROR: The VMRUN intercept bit is clear.\n");
 		printk("VMCB VMRUN INTERCEPT BIT: %d\n", vmcb->control_area.svm_instr_intercepts.VMRUN);
 	}

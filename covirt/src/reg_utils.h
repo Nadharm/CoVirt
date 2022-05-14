@@ -81,7 +81,8 @@ typedef union cr0_reg {
         uint64_t MP     : 1;  // [1] Monitor Coprocessor
         uint64_t EM     : 1;  // [2] Emulation
         uint64_t TS     : 1;  // [3] Task Switched
-        uint64_t ET     : 1;  // [4] Numeric Error
+        uint64_t ET     : 1;  // [4] Extension Type
+        uint64_t NE     : 1;  // [5] Numeric Error
         uint64_t rsvd0  : 10; // [6:15] rsvd, do not change
         uint64_t WP     : 1;  // [16] Write Protect
         uint64_t rsvd1  : 1;  // [17] reserved, do not change
@@ -226,6 +227,8 @@ uint16_t get_cs(void);
 uint16_t get_es(void);
 uint16_t get_ds(void);
 uint16_t get_ss(void);
+uint16_t get_fs(void);
+uint16_t get_gs(void);
 
 uint64_t get_dr6(void);
 uint64_t get_dr7(void);
