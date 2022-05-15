@@ -3,7 +3,7 @@
 
 #include "vmcb.h"
 #include "svm_utils.h"
-
+#include "constants.h"
 // Reference: [AMD V2 15.5.1]
 // At this point, we assume running at CPL 0 & EFER.SVME == 1
 
@@ -38,4 +38,76 @@ int vm_setup(void){
 }
 
 //__asm__ __volatile__ ("VMRUN" : : "a"(phys_vmcb_ptr));
+
+
+
+
+
+
+
+
+
+
+
+//When the VMRUN instruction exits (back to the host), an exit/reason code is stored in the EXIT_CODE field in the VMCB
+//I am not sure whether we need to put it here.
+//This is a table to find specific handler due to the
+static int
+svm_exit_code (vmcb_t * vmcb)
+{
+	switch (vmcb->control_area.EXIT_CODE) {
+	case VMEXIT_EXCP14:	/* Page fault */
+		break;
+	case VMEXIT_CR0_READ:
+		//do_cr0_read();//next step to finish the handler
+		break;
+	case VMEXIT_CR0_WRITE:
+		break;
+	case VMEXIT_CR3_READ:
+		break;
+	case VMEXIT_CR3_WRITE:
+		break;
+	case VMEXIT_CR4_READ:
+		break;
+	case VMEXIT_CR4_WRITE:
+		break;
+	case VMEXIT_IOIO:
+		break;
+	case VMEXIT_INVLPG:
+		break;
+	case VMEXIT_TASK_SWITCH:
+		break;
+	case VMEXIT_INTR:
+		break;
+	case VMEXIT_MSR:
+		break;
+	case VMEXIT_NPF:
+		break;
+	case VMEXIT_VMMCALL:
+		break;
+	case VMEXIT_INIT:
+		break;
+	case VMEXIT_NMI:
+		break;
+	case VMEXIT_CPUID:
+		break;
+	case VMEXIT_CLGI:
+		break;
+	case VMEXIT_STGI:
+		break;
+	case VMEXIT_VMRUN:
+		break;
+	case VMEXIT_INVLPGA:
+		break;
+	default:
+		//unsupported vmexit types
+		//maybe like panic function
+		//now I just return -1 as error
+		return -1;
+	}
+}
+
+
+
+
 
