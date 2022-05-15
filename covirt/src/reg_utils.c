@@ -72,7 +72,7 @@ uint16_t get_cs(void){
 uint16_t get_fs(void){
  	uint16_t fs;
 	__asm__ __volatile__("mov %%fs, %0" : "=m"(fs));
-	printk("FS: %lx\n", fs);
+	printk("FS: %x\n", fs);
 	return fs;
 }
 
@@ -116,33 +116,17 @@ desc_ptr get_gdtr(void)
 	return gdtr;
 }
 
-sys_desc_t get_ldtr(desc_ptr gdtr)
+uint16_t get_ldtr(void)
 {
-	seg_sel_t seg_sel;
-	sys_desc_t * full_ldtr_ptr;
-	sys_desc_t full_ldtr;
-	// This will load the seg-selector for LDTR into seg_sel
-	__asm__ __volatile__("sldt %0" : "=m"(seg_sel));
-
-
-	uint16_t selector_index = seg_sel.SI << 3; 
-	full_ldtr_ptr = (sys_desc_t *) (gdtr.base + selector_index);
-	full_ldtr = *full_ldtr_ptr;
-	return full_ldtr;
+	uint16_t ldtr;
+	__asm__ __volatile__("sldt %0" : "=m"(ldtr));
+	return ldtr;
 }
 
-sys_desc_t get_tr(desc_ptr gdtr){
- 	seg_sel_t seg_sel;
-	sys_desc_t * full_tr_ptr;
-	sys_desc_t full_tr;
-	// This will load the seg-selector for LDTR into seg_sel
-	__asm__ __volatile__("str %0" : "=m"(seg_sel));
-
-	printk("SEG_SEL = %lx\n", seg_sel.val & 0xfff8);
-	uint16_t selector_index = seg_sel.val & 0xfff8; 
-	full_tr_ptr = (sys_desc_t *) (gdtr.base + selector_index);
-	full_tr = *full_tr_ptr;
-	return full_tr;
+uint16_t get_tr(void){
+ 	uint16_t tr;
+	__asm__ __volatile__("str %0" : "=m"(tr));
+	return tr;
 }
 
 // uint8_t get_virq(void){
@@ -166,10 +150,13 @@ uint64_t get_descriptor(seg_sel_t seg_sel){
 		// printk("Selector Index: %d\n", selector_index);
 		// printk("Descriptor: %llx\n", *descriptor_ptr);
 		return (uint64_t) *descriptor_ptr;
-	} else {
-		// Table Index == 1 => Local Descriptor Table
-		sys_desc_t ldtr = get_ldtr(gdtr);
-		descriptor_ptr = (long *) (ldtr.base + selector_index);
-		return (uint64_t) *descriptor_ptr;
-	}
+	} 
+	// else {
+	// 	// Table Index == 1 => Local Descriptor Table
+	// 	sys_desc_t ldtr = get_ldtr(gdtr);
+	// 	descriptor_ptr = (long *) (ldtr.base + selector_index);
+	// 	return (uint64_t) *descriptor_ptr;
+	// }
+	printk("\n\nLOOKING FOR SOMETHING IN LDT\n\n");
+	return 0;
 }

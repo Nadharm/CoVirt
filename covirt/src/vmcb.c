@@ -9,6 +9,9 @@ extern void * __global_Host_Reg_Store;
 extern void * __global_Guest_Reg_Store;
 extern void * __global_VMCB_VA;
 extern phys_addr_t __global_VMCB_PA;
+
+#define NOT_SYSTEM_DESCRIPTOR 0
+#define SYSTEM_DESCRIPTOR 1
 // extern phys_addr_t __global_VM_HSAVE_PA;
 
 // #include "vmcb.h"
@@ -26,8 +29,7 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	
 	desc_ptr idtr;
 	desc_ptr gdtr;
-	sys_desc_t ldtr;
-	sys_desc_t tr;
+	
 
 	// Code Segment
 	seg_sel_t cs_sel;
@@ -39,12 +41,23 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	seg_sel_t gs_sel;
 	seg_sel_t ss_sel;
 
+	// System Registers
+	seg_sel_t ldtr_sel_lo;
+	seg_sel_t ldtr_sel_hi;
+	seg_sel_t tr_sel_lo;
+	seg_sel_t tr_sel_hi;
+
 	cs_sel.val = get_cs();
 	ds_sel.val = get_ds();
 	es_sel.val = get_es();
 	fs_sel.val = get_fs();
 	gs_sel.val = get_gs();
 	ss_sel.val = get_ss();
+
+	ldtr_sel_lo.val = get_ldtr();
+	ldtr_sel_hi.val = ldtr_sel_lo.val + 8;
+	tr_sel_lo.val = get_tr();
+	tr_sel_hi.val = tr_sel_lo.val + 8;
 
 	// Store CS, RIP [Done]
 	vmcb->state_save_area.cs = format_segment(get_descriptor(cs_sel), cs_sel.val);
@@ -84,10 +97,12 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	vmcb->state_save_area.es = format_segment(get_descriptor(es_sel), es_sel.val);
 	vmcb->state_save_area.ds = format_segment(get_descriptor(ds_sel), ds_sel.val);
 	
-	// Store FS and GS
+	// Store FS and GS (This is a special case)
 
 	vmcb->state_save_area.fs = format_segment(get_descriptor(fs_sel), fs_sel.val);
+	vmcb->state_save_area.fs.base = read_msr(0xC0000100);  // Get the actual base
 	vmcb->state_save_area.gs = format_segment(get_descriptor(gs_sel), gs_sel.val);
+	vmcb->state_save_area.gs.base = read_msr(0xC0000101);
 
 	// Store DR6 and DR7 [Done]
 	vmcb->state_save_area.dr6 = get_dr6();
@@ -125,13 +140,17 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	vmcb->state_save_area.sysenter_eip = read_msr(SYSENTER_EIP_MSR);
 
 	// System Descriptor Stuff
-	ldtr = get_ldtr(gdtr);
-	vmcb->state_save_area.ldtr.attrib = ldtr.attributes;
-	vmcb->state_save_area.ldtr.base = ldtr.base;
-	vmcb->state_save_area.ldtr.limit = ldtr.limit;
-	vmcb->state_save_area.ldtr.selector = ldtr.selector;
 
-	// tr = get_tr(gdtr);
+	
+	vmcb->state_save_area.ldtr = format_segment(get_descriptor(ldtr_sel_lo), ldtr_sel_lo.val);
+	vmcb->state_save_area.ldtr.base += (get_descriptor(ldtr_sel_hi) & 0xffffffff) << 32;
+	// vmcb->state_save_area.ldtr.attrib = ldtr.attributes;
+	// vmcb->state_save_area.ldtr.base = ldtr.base;
+	// vmcb->state_save_area.ldtr.limit = ldtr.limit;
+	// vmcb->state_save_area.ldtr.selector = ldtr.selector;
+	
+	vmcb->state_save_area.tr = format_segment(get_descriptor(tr_sel_lo), tr_sel_lo.val);
+	vmcb->state_save_area.tr.base += (get_descriptor(tr_sel_hi) & 0xffffffff) << 32;
 	// vmcb->state_save_area.tr.attrib = tr.attributes;
 	// vmcb->state_save_area.tr.base = tr.base;
 	// vmcb->state_save_area.tr.limit = tr.limit;
