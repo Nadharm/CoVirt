@@ -99,10 +99,10 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	
 	// Store FS and GS (This is a special case)
 
-	vmcb->state_save_area.fs = format_segment(get_descriptor(fs_sel), fs_sel.val);
-	vmcb->state_save_area.fs.base = read_msr(0xC0000100);  // Get the actual base
-	vmcb->state_save_area.gs = format_segment(get_descriptor(gs_sel), gs_sel.val);
-	vmcb->state_save_area.gs.base = read_msr(0xC0000101);
+	// vmcb->state_save_area.fs = format_segment(get_descriptor(fs_sel), fs_sel.val);
+	// //vmcb->state_save_area.fs.base = read_msr(0xC0000100);  // Get the actual base
+	// vmcb->state_save_area.gs = format_segment(get_descriptor(gs_sel), gs_sel.val);
+	// //vmcb->state_save_area.gs.base = read_msr(0xC0000101);
 
 	// Store DR6 and DR7 [Done]
 	vmcb->state_save_area.dr6 = get_dr6();
@@ -127,36 +127,37 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	vmcb->control_area.svm_instr_intercepts.VMRUN = 1;
 	//printk("VMCB SVM INSTR INTERCEPTS: %lx\n", vmcb->control_area.svm_instr_intercepts.val);
 
+	vmcb->control_area.N_CR3 = get_cr3();
 	// Stuff for VMLOAD + VMSAVE
-	vmcb->state_save_area.star = read_msr(STAR_MSR);
-	vmcb->state_save_area.lstar	= read_msr(LSTAR_MSR);
-	vmcb->state_save_area.cstar = read_msr(CSTAR_MSR);
-	vmcb->state_save_area.sfmask = read_msr(SFMASK_MSR);
+	// vmcb->state_save_area.star = read_msr(STAR_MSR);
+	// vmcb->state_save_area.lstar	= read_msr(LSTAR_MSR);
+	// vmcb->state_save_area.cstar = rsead_msr(CSTAR_MSR);
+	// vmcb->state_save_area.sfmask = read_msr(SFMASK_MSR);
 
-	vmcb->state_save_area.kernel_gs_base = read_msr(KernelGSBase_MSR);
+	// vmcb->state_save_area.kernel_gs_base = read_msr(KernelGSBase_MSR);
 
-	vmcb->state_save_area.sysenter_cs = read_msr(SYSENTER_CS_MSR);
-	vmcb->state_save_area.sysenter_esp = read_msr(SYSENTER_ESP_MSR);
-	vmcb->state_save_area.sysenter_eip = read_msr(SYSENTER_EIP_MSR);
+	// vmcb->state_save_area.sysenter_cs = read_msr(SYSENTER_CS_MSR);
+	// vmcb->state_save_area.sysenter_esp = read_msr(SYSENTER_ESP_MSR);
+	// vmcb->state_save_area.sysenter_eip = read_msr(SYSENTER_EIP_MSR);
 
 	// System Descriptor Stuff
 
 	
-	vmcb->state_save_area.ldtr = format_segment(get_descriptor(ldtr_sel_lo), ldtr_sel_lo.val);
-	vmcb->state_save_area.ldtr.base += (get_descriptor(ldtr_sel_hi) & 0xffffffff) << 32;
+	// vmcb->state_save_area.ldtr = format_segment(get_descriptor(ldtr_sel_lo), ldtr_sel_lo.val);
+	// vmcb->state_save_area.ldtr.base += (get_descriptor(ldtr_sel_hi) & 0xffffffff) << 32;
 	// vmcb->state_save_area.ldtr.attrib = ldtr.attributes;
 	// vmcb->state_save_area.ldtr.base = ldtr.base;
 	// vmcb->state_save_area.ldtr.limit = ldtr.limit;
 	// vmcb->state_save_area.ldtr.selector = ldtr.selector;
 	
-	vmcb->state_save_area.tr = format_segment(get_descriptor(tr_sel_lo), tr_sel_lo.val);
-	vmcb->state_save_area.tr.base += (get_descriptor(tr_sel_hi) & 0xffffffff) << 32;
+	// vmcb->state_save_area.tr = format_segment(get_descriptor(tr_sel_lo), tr_sel_lo.val);
+	// vmcb->state_save_area.tr.base += (get_descriptor(tr_sel_hi) & 0xffffffff) << 32;
 	// vmcb->state_save_area.tr.attrib = tr.attributes;
 	// vmcb->state_save_area.tr.base = tr.base;
 	// vmcb->state_save_area.tr.limit = tr.limit;
 	// vmcb->state_save_area.tr.selector = tr.selector;
 
-
+	vmcb->control_area.instr_intercepts.CPUID = 1;
 }
 
 /*
@@ -206,6 +207,7 @@ void handle_vmexit(void){
 	printk("EXIT INFO1: %llx\n", vmcb->control_area.EXIT_INFO1);
 	printk("EXIT INFO2: %llx\n", vmcb->control_area.EXIT_INFO2);
 	printk("EXIT INT INFO: %llx\n", vmcb->control_area.EXIT_INT_INFO);
+	while(1){};
 	return;	
 }
 
@@ -473,6 +475,7 @@ void check_entry_offset(uint16_t offset, uint64_t e_ptr, char * name){
 	if ((e_ptr & 0xfff) != offset){
 		printk("VMCB_T INCORRECT. %s is at offset 0x%x, should be at 0x%x\n", name, (uint16_t)(e_ptr & 0xfff), offset);
 	}
+	printk("DEBUG- %s at 0x%x: %llx", name, (uint16_t)(e_ptr & 0xfff), *(uint64_t *)e_ptr);
 	return;
 }
 

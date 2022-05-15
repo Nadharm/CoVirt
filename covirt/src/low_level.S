@@ -95,7 +95,8 @@ VM_Setup_and_Run:
 	popq %rcx					// [Arg 4] Pop RFLAGS into %rcx
 	call vmcb_init				// Initialize the Guest VMCB
 
-	
+	movq %rbp, %rsp
+	popq %rbp
 run_loop:
 	// VM_HSAVE_PA MSR already setup
 
@@ -105,10 +106,11 @@ run_loop:
 
 	movq (__global_VMCB_PA), %rax	// Move the VMCB Physical Address into RAX so VMRUN can use it.
 
-	vmload;
+	//vmload;
 	vmrun;
-	vmsave;
-
+	//vmsave;
+	clgi
+exit_stuff:
 	Save_SVM_Registers(__global_Guest_Reg_Store);
 
 	Restore_SVM_Registers(__global_Host_Reg_Store);
@@ -118,8 +120,7 @@ run_loop:
 	jmp run_loop 
 
 	// We shouldn't hit here I don't think...
-	movq %rbp, %rsp
-	popq %rbp
+	
 	ret
 
 /*
