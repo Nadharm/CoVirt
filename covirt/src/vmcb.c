@@ -207,7 +207,11 @@ void handle_vmexit(void){
 	printk("EXIT INFO1: %llx\n", vmcb->control_area.EXIT_INFO1);
 	printk("EXIT INFO2: %llx\n", vmcb->control_area.EXIT_INFO2);
 	printk("EXIT INT INFO: %llx\n", vmcb->control_area.EXIT_INT_INFO);
-	while(1){};
+	printk("Clearing EXIT STUFF\n");
+	// vmcb->control_area.EXIT_CODE = 0;
+	// vmcb->control_area.EXIT_INFO1 = 0;
+	// vmcb->control_area.EXIT_INFO2 = 0;
+	// vmcb->control_area.EXIT_INT_INFO = 0;
 	return;	
 }
 

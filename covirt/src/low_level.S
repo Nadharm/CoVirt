@@ -95,6 +95,13 @@ VM_Setup_and_Run:
 	popq %rcx					// [Arg 4] Pop RFLAGS into %rcx
 	call vmcb_init				// Initialize the Guest VMCB
 
+	pushq %rax
+	movq __global_VMCB_PA, %rax
+	vmsave
+	movq __global_VM_HSAVE_PA, %rax
+	vmsave
+	popq %rax
+
 	movq %rbp, %rsp
 	popq %rbp
 run_loop:
@@ -106,11 +113,17 @@ run_loop:
 
 	movq (__global_VMCB_PA), %rax	// Move the VMCB Physical Address into RAX so VMRUN can use it.
 
-	//vmload;
+	vmload;
 	vmrun;
-	//vmsave;
+	vmsave;
 	clgi
 exit_stuff:
+
+	pushq %rax
+	movq __global_VM_HSAVE_PA, %rax
+	vmload
+	popq %rax
+
 	Save_SVM_Registers(__global_Guest_Reg_Store);
 
 	Restore_SVM_Registers(__global_Host_Reg_Store);
