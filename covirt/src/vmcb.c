@@ -1,6 +1,7 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <asm/io.h>
+#include <linux/delay.h>
 
 #include "reg_utils.h"
 #include "vmcb.h"
@@ -223,6 +224,8 @@ void handle_vmexit(void){
 			vmcb->control_area.EXIT_INFO1 = 0;
 			vmcb->control_area.EXIT_INFO2 = 0;
 			vmcb->control_area.EXIT_INT_INFO = 0;
+			vmcb->control_area.instr_intercepts.RDTSC = 0;
+			debug_vmcb(vmcb);
 			break;
 		default:
 			// We better not hit this

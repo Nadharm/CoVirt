@@ -16,7 +16,10 @@ then
 	find . -print0 | cpio --null -ov --format=newc | gzip -9 > $PLAY/obj/initramfs-busybox.cpio.gz
 	cd $PLAY
 
-	qemu-system-x86_64 -enable-kvm -m 2048 -smp 1 -kernel $PLAY/obj/linux-basic/arch/x86_64/boot/bzImage -initrd obj/initramfs-busybox.cpio.gz -s -append "console=ttyS0 nokaslr" -nographic
+	# Important things:
+	# -enable-kvm (enables KVM)
+	# -cpu host (specifies that we want the spun up box to act like an L1/another host. This enables things like NRIP_SAVE)
+	qemu-system-x86_64 -cpu host -enable-kvm -m 2048 -smp 1 -kernel $PLAY/obj/linux-basic/arch/x86_64/boot/bzImage -initrd obj/initramfs-busybox.cpio.gz -s -append "console=ttyS0 nokaslr" -nographic
 
 	#sudo qemu-system-x86_64 -enable-kvm -m 2048 -smp 1 -kernel ~/playground/obj/linux-basic/arch/x86_64/boot/bzImage -initrd ~/ramdisk.img -s -append "console=ttyS0 nokaslr" -nographic
 fi
