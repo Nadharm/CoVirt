@@ -29,7 +29,7 @@ static int __init test_init(void)
 	__global_Host_Reg_Store = kzalloc(128, GFP_KERNEL);  // only need like 128 bytes for now
 	__global_Guest_Reg_Store = kzalloc(128, GFP_KERNEL);  // only neeed like 128 bytes for now
 
-	//mdelay(3000);
+	mdelay(3000);
 	VM_Setup_and_Run();	
 	//__asm__ __volatile__("clgi");
 	printk("IN GUEST: Hi, we're here!\n");

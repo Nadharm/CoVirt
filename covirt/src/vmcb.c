@@ -4,6 +4,7 @@
 
 #include "reg_utils.h"
 #include "vmcb.h"
+#include "constants.h"
 
 extern void * __global_Host_Reg_Store; 
 extern void * __global_Guest_Reg_Store;
@@ -157,7 +158,7 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	// vmcb->state_save_area.tr.limit = tr.limit;
 	// vmcb->state_save_area.tr.selector = tr.selector;
 
-	vmcb->control_area.instr_intercepts.CPUID = 1;
+	vmcb->control_area.instr_intercepts.RDTSC = 1;
 }
 
 /*
@@ -203,11 +204,32 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 
 void handle_vmexit(void){
 	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
-	printk("EXIT CODE: %lld\n", *((int64_t *)vmcb + 14));
-	printk("EXIT INFO1: %llx\n", vmcb->control_area.EXIT_INFO1);
-	printk("EXIT INFO2: %llx\n", vmcb->control_area.EXIT_INFO2);
-	printk("EXIT INT INFO: %llx\n", vmcb->control_area.EXIT_INT_INFO);
-	printk("Clearing EXIT STUFF\n");
+	uint64_t exitcode = (uint64_t) vmcb->control_area.EXIT_CODE;
+	printk("Hit exit handler....\n");
+	printk("EXIT CODE: 0x%llx\n", exitcode);
+	printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
+	printk("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
+	printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
+	
+	// We need to decode the VMEXIT
+
+	switch(exitcode){
+		case VMEXIT_RDTSC:
+			printk("RDTSC Instruction Intercept\n");
+			// This is just a test:
+			vmcb->state_save_area.rax = 0xdeadbeef;
+			vmcb->state_save_area.rip = vmcb->control_area.nRIP;
+			vmcb->control_area.EXIT_CODE = 0;
+			vmcb->control_area.EXIT_INFO1 = 0;
+			vmcb->control_area.EXIT_INFO2 = 0;
+			vmcb->control_area.EXIT_INT_INFO = 0;
+			break;
+		default:
+			// We better not hit this
+			// Just gonna let us go into an infinite loop.
+			break;
+	}	
+
 	// vmcb->control_area.EXIT_CODE = 0;
 	// vmcb->control_area.EXIT_INFO1 = 0;
 	// vmcb->control_area.EXIT_INFO2 = 0;

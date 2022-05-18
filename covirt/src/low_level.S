@@ -95,6 +95,7 @@ VM_Setup_and_Run:
 	popq %rcx					// [Arg 4] Pop RFLAGS into %rcx
 	call vmcb_init				// Initialize the Guest VMCB
 
+	// Take advantage of VMSAVE to store state for us 
 	pushq %rax
 	movq __global_VMCB_PA, %rax
 	vmsave
@@ -119,6 +120,7 @@ run_loop:
 	clgi
 exit_stuff:
 
+	// Take advantage of VMSAVE to load the host's saved state
 	pushq %rax
 	movq __global_VM_HSAVE_PA, %rax
 	vmload

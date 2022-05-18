@@ -75,7 +75,13 @@ int svm_check(void) {
 		printk("SVM disabled with key, may be unlockable.\n");
 	} else {
 		printk("SVM Disabled at BIOS, Not Unlockable\n");
-		return -1;
+		//return -1;
+	}
+
+	if (edx & (0x1 << 3)){
+		printk("NRIPS ENABLED.\n");
+	} else {
+		printk("NRIPS DISABLED.\n");
 	}
 
 	return 0;
