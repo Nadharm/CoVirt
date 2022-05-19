@@ -159,7 +159,8 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	// vmcb->state_save_area.tr.limit = tr.limit;
 	// vmcb->state_save_area.tr.selector = tr.selector;
 
-	vmcb->control_area.instr_intercepts.RDTSC = 1;
+	//vmcb->control_area.instr_intercepts.RDTSC = 1;
+	vmcb->control_area.instr_intercepts.CPUID = 1;
 }
 
 /*
@@ -215,15 +216,20 @@ void handle_vmexit(void){
 	// We need to decode the VMEXIT
 
 	switch(exitcode){
+		case VMEXIT_CPUID:
+			printk("CPUID Instruction Intercept\n");
+			vmcb->state_save_area.rax = 0xffffffff;
+			*(uint64_t *)(__global_Guest_Reg_Store + 32) = 0x20796548;
+			*(uint64_t *)(__global_Guest_Reg_Store + 40) = 0x72656854;
+			*(uint64_t *)(__global_Guest_Reg_Store + 48) = 0x293A2065;
+			//vmcb->state_save_area.rbx = 0xAAAAAAAA;
+			//vmcb->state_save_area.rcx = 0xBBBBBBBB;
+			//vmcb->state_save_area.rdx = 0xcafebaee;
+			break;
 		case VMEXIT_RDTSC:
 			printk("RDTSC Instruction Intercept\n");
 			// This is just a test:
 			vmcb->state_save_area.rax = 0xdeadbeef;
-			vmcb->state_save_area.rip = vmcb->control_area.nRIP;
-			vmcb->control_area.EXIT_CODE = 0;
-			vmcb->control_area.EXIT_INFO1 = 0;
-			vmcb->control_area.EXIT_INFO2 = 0;
-			vmcb->control_area.EXIT_INT_INFO = 0;
 			vmcb->control_area.instr_intercepts.RDTSC = 0;
 			debug_vmcb(vmcb);
 			break;
@@ -231,12 +237,23 @@ void handle_vmexit(void){
 			// We better not hit this
 			// Just gonna let us go into an infinite loop.
 			break;
-	}	
+	}
+	
+	// If the exit was caused by an instr_interrupt
+	if(exitcode >= 0x60 && exitcode <= 0x7f){
+		vmcb->state_save_area.rip = vmcb->control_area.nRIP;
+	}
 
-	// vmcb->control_area.EXIT_CODE = 0;
-	// vmcb->control_area.EXIT_INFO1 = 0;
-	// vmcb->control_area.EXIT_INFO2 = 0;
-	// vmcb->control_area.EXIT_INT_INFO = 0;
+	// I feel like this is what we'll need to do for all of them.
+	// Is it possible to hit an interrupt for multiple reasons at once?
+	vmcb->control_area.EXIT_CODE = 0;
+	vmcb->control_area.EXIT_INFO1 = 0;
+	vmcb->control_area.EXIT_INFO2 = 0;
+	vmcb->control_area.EXIT_INT_INFO = 0;
+
+	// Just for memes edit the time
+	// vmcb->control_area.TSC_OFFSET += 10000;
+
 	return;	
 }
 
