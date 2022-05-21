@@ -214,7 +214,6 @@ void handle_vmexit(void){
 	printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
 	
 	// We need to decode the VMEXIT
-
 	switch(exitcode){
 		case VMEXIT_CPUID:
 			printk("CPUID Instruction Intercept\n");
