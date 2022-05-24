@@ -160,3 +160,14 @@ uint64_t get_descriptor(seg_sel_t seg_sel){
 	printk("\n\nLOOKING FOR SOMETHING IN LDT\n\n");
 	return 0;
 }
+
+struct apic_ba_reg get_apic_info(void){
+	struct apic_ba_reg bar;
+	uint64_t bar_raw;
+	bar_raw = read_msr(APIC_BASE_MSR);
+	bar.base_addr = bar_raw & APIC_BASE_MASK;
+	bar.bsr = !!(bar_raw & APIC_BSR_MASK);
+	bar.enabled = !!(bar_raw & APIC_EN_MASK);
+
+	return bar;
+}

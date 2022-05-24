@@ -25,6 +25,12 @@
 // Used for SWAPGS
 #define KernelGSBase_MSR    0xC0000102
 
+// APIC MSR
+#define APIC_BASE_MSR 	0x0000001b
+#define APIC_BASE_MASK 	0xFFFFFFFFFF << 12
+#define APIC_BSR_MASK	0x1 << 8
+#define APIC_EN_MASK	0x1 << 11
+
 // Should probably use Linux's desc_ptr but idk who cares
 typedef struct descriptor_ptr {
     uint16_t limit;
@@ -257,3 +263,14 @@ uint64_t get_dr7(void);
 
 uint8_t get_vtpr(void);  // This is 8 bits, even though the V_TPR is 4 bits. This is because of the VMCB CA's stucture. 
 // uint8_t get_virq(void);  // This actually is only 1 bit
+
+
+
+// Apic Base Address Register
+struct apic_ba_reg {
+	uint64_t base_addr;
+	uint8_t bsr		: 1; // Is this the boot strap register
+	uint8_t enabled	: 1; // Is APIC enabled
+} __attribute__((packed));
+
+struct apic_ba_reg get_apic_info(void);

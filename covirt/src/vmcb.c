@@ -159,8 +159,13 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	// vmcb->state_save_area.tr.limit = tr.limit;
 	// vmcb->state_save_area.tr.selector = tr.selector;
 
-	//vmcb->control_area.instr_intercepts.RDTSC = 1;
-	vmcb->control_area.instr_intercepts.CPUID = 1;
+	// This is the fun part...
+	//vmcb->control_area.instr_intercepts.RDTSC = 1;  // Intercept RDTSC Instruction
+	vmcb->control_area.instr_intercepts.CPUID = 1;	// Intercept CPUID Instruction
+
+	// Catching physical interrupts
+	//vmcb->control_area.instr_intercepts.INTR = 1;
+	//vmcb->control_area.guest_int_ctrl.V_INTR_MASK = 1;	// Host IF for P-ints. Guest IF only for V-ints.
 }
 
 /*
@@ -193,7 +198,17 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	debug_vmcb(__global_VMCB_VA);
 	consistency_checks();
 
+	// Just going to use this as a scratchspace
 
+	struct apic_ba_reg bar;
+	bar = get_apic_info();
+	printk("APIC Base Addr (phys): %llx\n", bar.base_addr);
+	printk("APIC Enabled: %x\n", bar.enabled);
+	printk("APIC BSR?: %x\n", bar.bsr);
+	uint64_t virt_ba = phys_to_virt(bar.base_addr);
+	printk("APIC Base Addr (virt): %llx\n", virt_ba);
+	//printk("APIC LINT0 Entry: %llx\n", *(uint64_t *) virt_to_phys(bar.base_addr + 0x350));
+	//printk("APIC LINT1 Entry: %llx\n", *(uint64_t *) virt_to_phys(bar.base_addr + 0x360));
 	// Test an exit on a CR0 read
 	// vmcb_ptr->control_area.cr_reads.CR0 = 1;
 
@@ -207,14 +222,17 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 void handle_vmexit(void){
 	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
 	uint64_t exitcode = (uint64_t) vmcb->control_area.EXIT_CODE;
-	printk("Hit exit handler....\n");
-	printk("EXIT CODE: 0x%llx\n", exitcode);
-	printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
-	printk("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
-	printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
+	//printk("Hit exit handler....\n");
+	//printk("EXIT CODE: 0x%llx\n", exitcode);
+	//printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
+	//printk("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
+	//printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
 	
 	// We need to decode the VMEXIT
 	switch(exitcode){
+		case VMEXIT_INTR:
+			printk("Physical Interrupt\n");
+			//printk("Is anything stored in V_INTR_VECTOR: %llx\n", (uint64_t)vmcb->control_area.guest_int_ctrl.V_INTR_VEC);
 		case VMEXIT_CPUID:
 			printk("CPUID Instruction Intercept\n");
 			vmcb->state_save_area.rax = 0xffffffff;
