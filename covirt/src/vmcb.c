@@ -3,6 +3,7 @@
 #include <asm/io.h>
 #include <linux/delay.h>
 
+#include "apic.h"
 #include "reg_utils.h"
 #include "vmcb.h"
 #include "constants.h"
@@ -200,13 +201,9 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 
 	// Just going to use this as a scratchspace
 
-	struct apic_ba_reg bar;
-	bar = get_apic_info();
-	printk("APIC Base Addr (phys): %llx\n", bar.base_addr);
-	printk("APIC Enabled: %x\n", bar.enabled);
-	printk("APIC BSR?: %x\n", bar.bsr);
-	uint64_t virt_ba = phys_to_virt(bar.base_addr);
-	printk("APIC Base Addr (virt): %llx\n", virt_ba);
+	print_apic_info();
+
+
 	//printk("APIC LINT0 Entry: %llx\n", *(uint64_t *) virt_to_phys(bar.base_addr + 0x350));
 	//printk("APIC LINT1 Entry: %llx\n", *(uint64_t *) virt_to_phys(bar.base_addr + 0x360));
 	// Test an exit on a CR0 read
