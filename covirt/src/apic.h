@@ -14,6 +14,9 @@ struct apic_ba_reg {
 
 struct apic_ba_reg get_apic_info(void);
 
+uint64_t get_current_isrs(void);
+uint64_t get_current_irrs(void);
+
 
 
 //// This is for x2APIC

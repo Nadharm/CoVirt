@@ -165,8 +165,8 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	vmcb->control_area.instr_intercepts.CPUID = 1;	// Intercept CPUID Instruction
 
 	// Catching physical interrupts
-	//vmcb->control_area.instr_intercepts.INTR = 1;
-	//vmcb->control_area.guest_int_ctrl.V_INTR_MASK = 1;	// Host IF for P-ints. Guest IF only for V-ints.
+	vmcb->control_area.instr_intercepts.INTR = 1;
+	vmcb->control_area.guest_int_ctrl.V_INTR_MASK = 1;	// Host IF for P-ints. Guest IF only for V-ints.
 }
 
 /*
@@ -202,7 +202,7 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	// Just going to use this as a scratchspace
 
 	print_apic_info();
-
+	
 
 	//printk("APIC LINT0 Entry: %llx\n", *(uint64_t *) virt_to_phys(bar.base_addr + 0x350));
 	//printk("APIC LINT1 Entry: %llx\n", *(uint64_t *) virt_to_phys(bar.base_addr + 0x360));
@@ -229,6 +229,9 @@ void handle_vmexit(void){
 	switch(exitcode){
 		case VMEXIT_INTR:
 			printk("Physical Interrupt\n");
+			get_current_isrs();
+			get_current_irrs();
+			while(1){}
 			//printk("Is anything stored in V_INTR_VECTOR: %llx\n", (uint64_t)vmcb->control_area.guest_int_ctrl.V_INTR_VEC);
 		case VMEXIT_CPUID:
 			printk("CPUID Instruction Intercept\n");
