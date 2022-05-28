@@ -3,7 +3,7 @@
 
 #include "vmcb.h"
 #include "svm_utils.h"
-#include "constants.h"
+#include "exit_handlers.h"
 // Reference: [AMD V2 15.5.1]
 // At this point, we assume running at CPL 0 & EFER.SVME == 1
 

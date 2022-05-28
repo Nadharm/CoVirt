@@ -6,7 +6,7 @@
 #include "apic.h"
 #include "reg_utils.h"
 #include "vmcb.h"
-#include "constants.h"
+#include "exit_handlers.h"
 
 extern void * __global_Host_Reg_Store; 
 extern void * __global_Guest_Reg_Store;
@@ -199,6 +199,8 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	debug_vmcb(__global_VMCB_VA);
 	consistency_checks();
 
+	setup_apic_mapping();
+
 	// Just going to use this as a scratchspace
 
 	print_apic_info();
@@ -229,10 +231,8 @@ void handle_vmexit(void){
 	switch(exitcode){
 		case VMEXIT_INTR:
 			printk("Physical Interrupt\n");
-			get_current_isrs();
-			get_current_irrs();
-			while(1){}
-			//printk("Is anything stored in V_INTR_VECTOR: %llx\n", (uint64_t)vmcb->control_area.guest_int_ctrl.V_INTR_VEC);
+			// For performance we may want to deal with TIMER interrupts separately.
+			handle_phys_int();
 		case VMEXIT_CPUID:
 			printk("CPUID Instruction Intercept\n");
 			vmcb->state_save_area.rax = 0xffffffff;

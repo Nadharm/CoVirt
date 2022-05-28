@@ -172,3 +172,6 @@
 #define VMEXIT_VMGEXIT              0x403
 #define VMEXIT_INVALID				-1
 #define VMEXIT_BUSY				    -2
+
+
+void handle_phys_int(void);
