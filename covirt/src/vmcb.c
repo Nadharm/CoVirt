@@ -2,6 +2,7 @@
 #include <linux/slab.h>
 #include <asm/io.h>
 #include <linux/delay.h>
+#include <linux/string.h>
 
 #include "apic.h"
 #include "reg_utils.h"
@@ -166,8 +167,11 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	vmcb->control_area.instr_intercepts.CPUID = 1;	// Intercept CPUID Instruction
 
 	// Catching physical interrupts
-	vmcb->control_area.instr_intercepts.INTR = 1;
-	vmcb->control_area.guest_int_ctrl.V_INTR_MASK = 1;	// Host IF for P-ints. Guest IF only for V-ints.
+	//vmcb->control_area.instr_intercepts.INTR = 1;
+	//vmcb->control_area.guest_int_ctrl.V_INTR_MASK = 1;	// Host IF for P-ints. Guest IF only for V-ints.
+
+	// IO Port
+	vmcb->control_area.instr_intercepts.IOIO_PROT = 1;
 }
 
 /*
@@ -212,6 +216,13 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	// Test an exit on a CR0 read
 	// vmcb_ptr->control_area.cr_reads.CR0 = 1;
 
+	// need to setup the IOIO_PROT address and stuff
+	// allocate 12 Kbyte for the port mapping
+	void * iopm_va = (void *)kzalloc(0x3000, GFP_KERNEL);
+	memset(iopm_va, 0xFF, 0x3000);
+	phys_addr_t iopm_pa = virt_to_phys(iopm_va);
+	vmcb_ptr->control_area.IOPM_BASE_PA = iopm_pa;
+
 	//*((int64_t *)vmcb_ptr + 14) = 0;
 	// printk("INIT EC: %lld\n", *((int64_t *)vmcb_ptr + 14));
 	// printk("Exit Code location: %px\n", &(vmcb_ptr->control_area.EXIT_CODE));
@@ -224,14 +235,14 @@ void handle_vmexit(void){
 	uint64_t exitcode = (uint64_t) vmcb->control_area.EXIT_CODE;
 	//printk("Hit exit handler....\n");
 	printk("EXIT CODE: 0x%llx\n", exitcode);
-	printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
-	printk("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
-	printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
+	//printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
+	//printk("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
+	//printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
 	
 	// We need to decode the VMEXIT
 	switch(exitcode){
 		case VMEXIT_INTR:
-			printk("Physical Interrupt\n");
+			////printk("Physical Interrupt\n");
 			// For performance we may want to deal with TIMER interrupts separately.
 			handle_phys_int();
 			break;
@@ -254,12 +265,11 @@ void handle_vmexit(void){
 			break;
 		default:
 			// We better not hit this
-			// Just gonna let us go into an infinite loop.
 			break;
 	}
 	
 	// If the exit was caused by an instr_interrupt
-	if(exitcode >= 0x60 && exitcode <= 0x7f){
+	if(exitcode >= 0x65 && exitcode <= 0x7f){
 		vmcb->state_save_area.rip = vmcb->control_area.nRIP;
 	}
 
