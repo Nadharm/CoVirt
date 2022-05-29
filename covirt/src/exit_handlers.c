@@ -13,10 +13,14 @@ void handle_phys_int(void){
     vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
     // get_current_irrs();
     // get_current_isrs();
-    // vmcb->control_area.guest_int_ctrl.V_INTR_PRIO = 4;
-    // vmcb->control_area.guest_int_ctrl.V_INTR_VEC = (uint8_t) 236;
-    // vmcb->control_area.guest_int_ctrl.V_IRQ = 1;
     
-    vmcb->control_area.EVENTINJ = 236 + (0 << 8) + (0 << 11) + (1 << 31);
+    if(is_timer_interrupt()){
+        vmcb->control_area.guest_int_ctrl.V_INTR_PRIO = 4;
+        vmcb->control_area.guest_int_ctrl.V_INTR_VEC = 236;
+        vmcb->control_area.guest_int_ctrl.V_IRQ = 1;
+        // vmcb->control_area.EVENTINJ = 236 + (0 << 8) + (0 << 11) + (1 << 31);
+    } else {
+        printk("Holy crap, not a timer interrupt\n");
+    }
     return;
 }

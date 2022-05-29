@@ -32,11 +32,11 @@ static int __init test_init(void)
 	// NOTE: do not use mdelay(), it causes Kernel Panic, idk why.
 	// mdelay busy waits, preventing other tasks from running
 	// msleep doesn't busy wait
-	//msleep(3000);
+	msleep(3000);
 
 	VM_Setup_and_Run();	
 	//__asm__ __volatile__("clgi");
-	
+
 	// Why is this printing twice?
 	printk("IN GUEST: Hi, we're here!\n");
 	// printk("Now triggering a VMEXIT...\n");

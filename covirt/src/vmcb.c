@@ -88,6 +88,7 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	// Store IDTR, GDTR [Done]
 	idtr = get_idtr();
 	vmcb->state_save_area.idtr.base = idtr.base;
+	printk("\nIDTR BASE: %llx\n\n", idtr.base);
 	vmcb->state_save_area.idtr.limit = idtr.limit;
 
 	gdtr = get_gdtr();
@@ -222,10 +223,10 @@ void handle_vmexit(void){
 	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
 	uint64_t exitcode = (uint64_t) vmcb->control_area.EXIT_CODE;
 	//printk("Hit exit handler....\n");
-	//printk("EXIT CODE: 0x%llx\n", exitcode);
-	//printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
-	//printk("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
-	//printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
+	printk("EXIT CODE: 0x%llx\n", exitcode);
+	printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
+	printk("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
+	printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
 	
 	// We need to decode the VMEXIT
 	switch(exitcode){
@@ -233,6 +234,7 @@ void handle_vmexit(void){
 			printk("Physical Interrupt\n");
 			// For performance we may want to deal with TIMER interrupts separately.
 			handle_phys_int();
+			break;
 		case VMEXIT_CPUID:
 			printk("CPUID Instruction Intercept\n");
 			vmcb->state_save_area.rax = 0xffffffff;

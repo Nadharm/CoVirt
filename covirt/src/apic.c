@@ -55,6 +55,14 @@ uint64_t get_current_irrs(void){
 	return 0;
 }
 
+uint16_t is_timer_interrupt(void){
+	uint32_t reg7 = ioread32(mapped + 0x270);
+	if (reg7 & (0x1 << 12)){
+		return 1;
+	}
+	return 0;
+}
+
 void setup_apic_mapping(void){
 	struct apic_ba_reg bar;
 	bar = get_apic_info();

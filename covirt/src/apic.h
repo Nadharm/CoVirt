@@ -17,6 +17,7 @@ struct apic_ba_reg get_apic_info(void);
 uint64_t get_current_isrs(void);
 uint64_t get_current_irrs(void);
 void setup_apic_mapping(void);
+uint16_t is_timer_interrupt(void);
 
 
 //// This is for x2APIC
