@@ -8,6 +8,7 @@
 #include "reg_utils.h"
 #include "vmcb.h"
 #include "exit_handlers.h"
+#include "io.h"
 
 extern void * __global_Host_Reg_Store; 
 extern void * __global_Guest_Reg_Store;
@@ -201,9 +202,6 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	__global_VMCB_VA = (void *) vmcb_ptr; 
 	__global_VMCB_PA = phys_vmcb_ptr;
 
-	debug_vmcb(__global_VMCB_VA);
-	consistency_checks();
-
 	setup_apic_mapping();
 
 	// Just going to use this as a scratchspace
@@ -218,15 +216,17 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 
 	// need to setup the IOIO_PROT address and stuff
 	// allocate 12 Kbyte for the port mapping
-	void * iopm_va = (void *)kzalloc(0x3000, GFP_KERNEL);
-	memset(iopm_va, 0xFF, 0x3000);
-	phys_addr_t iopm_pa = virt_to_phys(iopm_va);
+	phys_addr_t iopm_pa = virt_to_phys(setup_iopm());
 	vmcb_ptr->control_area.IOPM_BASE_PA = iopm_pa;
 
 	//*((int64_t *)vmcb_ptr + 14) = 0;
 	// printk("INIT EC: %lld\n", *((int64_t *)vmcb_ptr + 14));
 	// printk("Exit Code location: %px\n", &(vmcb_ptr->control_area.EXIT_CODE));
 	// printk("DR Writes location: %px\n", &(vmcb_ptr->control_area.dr_writes));
+
+	debug_vmcb(__global_VMCB_VA);
+	consistency_checks();
+
 	return phys_vmcb_ptr;
 }
 
@@ -234,13 +234,17 @@ void handle_vmexit(void){
 	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
 	uint64_t exitcode = (uint64_t) vmcb->control_area.EXIT_CODE;
 	//printk("Hit exit handler....\n");
-	printk("EXIT CODE: 0x%llx\n", exitcode);
+	//printk("EXIT CODE: 0x%llx\n", exitcode);
 	//printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
 	//printk("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
 	//printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
 	
 	// We need to decode the VMEXIT
 	switch(exitcode){
+		case VMEXIT_IOIO:
+			printk("IO Interrupt\n");
+			printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
+			break;
 		case VMEXIT_INTR:
 			////printk("Physical Interrupt\n");
 			// For performance we may want to deal with TIMER interrupts separately.
