@@ -4,10 +4,9 @@
 #include <linux/delay.h>
 #include <linux/string.h>
 
-#include "apic.h"
 #include "reg_utils.h"
 #include "vmcb.h"
-#include "exit_handlers.h"
+#include "exit_handle.h"
 #include "io.h"
 
 extern void * __global_Host_Reg_Store; 
@@ -176,13 +175,10 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 }
 
 /*
-	This is our wrapper for all VMCB operations.
-		- For some reason (that reason being my poor planning) we're also setting the VM_HSAVE_PA MSR from here
-		- Allocate and initialize the VMCB state-save
-		- Initialize the VMCB Control Area too
+
 */
 phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags) {
-	// Does this need to be "volatile void *"?
+
     vmcb_t * vmcb_ptr;
 	phys_addr_t phys_vmcb_ptr;
 
@@ -194,35 +190,19 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	}
 	
 	printk("VMCB allocated at %px\n", vmcb_ptr);
-	store_guest_cpu_info(vmcb_ptr, rip, rsp, rax, rflags);
-    // kzfree((const void *) vmcb_ptr);
     phys_vmcb_ptr = virt_to_phys((void *) vmcb_ptr);
 
 	printk("Physical VMCB %llx\n", phys_vmcb_ptr);
 	__global_VMCB_VA = (void *) vmcb_ptr; 
 	__global_VMCB_PA = phys_vmcb_ptr;
 
-	setup_apic_mapping();
-
-	// Just going to use this as a scratchspace
-
-	print_apic_info();
-	
-
-	//printk("APIC LINT0 Entry: %llx\n", *(uint64_t *) virt_to_phys(bar.base_addr + 0x350));
-	//printk("APIC LINT1 Entry: %llx\n", *(uint64_t *) virt_to_phys(bar.base_addr + 0x360));
-	// Test an exit on a CR0 read
-	// vmcb_ptr->control_area.cr_reads.CR0 = 1;
+	// Populate the VMCB
+	store_guest_cpu_info(vmcb_ptr, rip, rsp, rax, rflags);
 
 	// need to setup the IOIO_PROT address and stuff
 	// allocate 12 Kbyte for the port mapping
 	phys_addr_t iopm_pa = virt_to_phys(setup_iopm());
 	vmcb_ptr->control_area.IOPM_BASE_PA = iopm_pa;
-
-	//*((int64_t *)vmcb_ptr + 14) = 0;
-	// printk("INIT EC: %lld\n", *((int64_t *)vmcb_ptr + 14));
-	// printk("Exit Code location: %px\n", &(vmcb_ptr->control_area.EXIT_CODE));
-	// printk("DR Writes location: %px\n", &(vmcb_ptr->control_area.dr_writes));
 
 	debug_vmcb(__global_VMCB_VA);
 	consistency_checks();
@@ -230,67 +210,15 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	return phys_vmcb_ptr;
 }
 
-void handle_vmexit(void){
-	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
-	uint64_t exitcode = (uint64_t) vmcb->control_area.EXIT_CODE;
-	//printk("Hit exit handler....\n");
-	//printk("EXIT CODE: 0x%llx\n", exitcode);
-	//printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
-	//printk("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
-	//printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
-	
-	// We need to decode the VMEXIT
-	switch(exitcode){
-		case VMEXIT_IOIO:
-			printk("IO Interrupt\n");
-			printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
-			break;
-		case VMEXIT_INTR:
-			////printk("Physical Interrupt\n");
-			// For performance we may want to deal with TIMER interrupts separately.
-			handle_phys_int();
-			break;
-		case VMEXIT_CPUID:
-			printk("CPUID Instruction Intercept\n");
-			vmcb->state_save_area.rax = 0xffffffff;
-			*(uint64_t *)(__global_Guest_Reg_Store + 32) = 0x20796548;
-			*(uint64_t *)(__global_Guest_Reg_Store + 40) = 0x72656854;
-			*(uint64_t *)(__global_Guest_Reg_Store + 48) = 0x293A2065;
-			//vmcb->state_save_area.rbx = 0xAAAAAAAA;
-			//vmcb->state_save_area.rcx = 0xBBBBBBBB;
-			//vmcb->state_save_area.rdx = 0xcafebaee;
-			break;
-		case VMEXIT_RDTSC:
-			printk("RDTSC Instruction Intercept\n");
-			// This is just a test:
-			vmcb->state_save_area.rax = 0xdeadbeef;
-			vmcb->control_area.instr_intercepts.RDTSC = 0;
-			debug_vmcb(vmcb);
-			break;
-		default:
-			// We better not hit this
-			break;
-	}
-	
-	// If the exit was caused by an instr_interrupt
-	if(exitcode >= 0x65 && exitcode <= 0x7f){
-		vmcb->state_save_area.rip = vmcb->control_area.nRIP;
-	}
 
-	// I feel like this is what we'll need to do for all of them.
-	// Is it possible to hit an interrupt for multiple reasons at once?
-	vmcb->control_area.EXIT_CODE = 0;
-	vmcb->control_area.EXIT_INFO1 = 0;
-	vmcb->control_area.EXIT_INFO2 = 0;
-	vmcb->control_area.EXIT_INT_INFO = 0;
+/*
+	Utility: Check the VMCB for faulty state
 
-	// Just for memes edit the time
-	// vmcb->control_area.TSC_OFFSET += 10000;
-
-	return;	
-}
-
-// This is important for getting VMRUN to go
+	Additional Notes: 
+	VMRUN will perform consistency checks. If checks fail => Instant VMEXIT.
+	This is just useful for doing the checks on our own first, allowing us to see
+	the cause of potential VMEXITS.
+*/
 void consistency_checks(void){
 	// YES I KNOW THIS IS UGLY AF
 	// I DONT CARE I JUST WANT IT TO WORK
@@ -558,7 +486,13 @@ void check_entry_offset(uint16_t offset, uint64_t e_ptr, char * name){
 	return;
 }
 
+/*
+	Utility: Format the segment descriptors so as to fit properly into the VMCB
 
+	Additional Notes:
+	Takes in a 64 bit descriptor (pointed to by the selectors in segment registers)
+	Takes in the selector (This is what is stored in the segment registers)
+*/
 segment_t format_segment(uint64_t descriptor, uint16_t selector) {
 	segment_t formatted_segment;
 	

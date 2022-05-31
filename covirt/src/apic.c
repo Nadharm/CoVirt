@@ -71,36 +71,3 @@ void setup_apic_mapping(void){
 	mapped = ioremap(base_addr, 0x8);
 	return;
 }
-
-// uint64_t get_vec_to_send(void){
-// 	// Need to see what the highest current IRR is
-
-// 	// This may or may not be necessary, as APIC may already decide this.
-// 	// Need to see what if there is an ISR
-// 	// If ISR:
-// 	// 		If IRR > highest ISR: Insert
-// 	// 		If IRR <= highest ISR: Prob no insert
-
-// }
-
-/*
-	void __iomem * mapped = ioremap(base_addr + 0x350, 0x8);
-
-	if(mapped == NULL){
-		printk("nullpointer\n");
-	} else {
-		uint64_t value = * (uint64_t*)mapped;
-		printk("LINT0: %llx\n", value); // 0xffffffff
-	}
-
-	mapped = ioremap(base_addr + 0x360, 0x8);
-
-	if(mapped == NULL){
-		printk("nullpointer\n");
-	} else {
-		uint64_t value = * (uint64_t*)mapped;
-		printk("LINT1: %llx\n", value); // 0xffffffff
-	}
-*/
-
-

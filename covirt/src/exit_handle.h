@@ -175,3 +175,5 @@
 
 
 void handle_phys_int(void);
+
+void handle_vmexit(void);
