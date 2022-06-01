@@ -1,3 +1,29 @@
+### Debugging stuff
+
+If you installed the kernel with the GDB_SCRIPTS enabled, you can do this:
+```
+$ add-auto-load-safe-path <path-to-CoVirt>/CoVirt/testing_playground/linux-5.13/scripts/gdb/vmlinux-gdb.py
+```
+
+If you chose to set up the Testing Playground, from CoVirt/covirt:
+```
+$ gdb ../testing_playground/obj/linux-basic/vmlinux
+(gdb) target remote:1234
+```
+
+After insmod-ing the kernel module, run this so you can reference symbols directly
+```
+(gdb) lx-symbols
+```
+
+```
+# These two lines have been added to the qemu run script, leaving them here for possible future reference
+# They're just for increasing output and stuff.
+# echo 8 > /proc/sys/kernel/printk
+# echo 'file kernel/module.c +p' > /sys/kernel/debug/dynamic_debug/control
+```
+
+
 If you configured the Kernel properly:
 
 - In ~/.gdbinit put the line "add-auto-load-safe-path <path to kernel build>/scripts/gdb/vmlinux-gdb.py
