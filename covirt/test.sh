@@ -25,9 +25,7 @@ then
 		# -cpu host (specifies that we want the spun up box to act like an L1/another host. This enables things like NRIP_SAVE)
 		#qemu-system-x86_64 -cpu host,-x2apic -enable-kvm -m 2048 -smp 1 -kernel $PLAY/obj/linux-basic/arch/x86_64/boot/bzImage -initrd obj/initramfs-busybox.cpio.gz -s -append "console=ttyS0 nokaslr" -nographic
 
-		qemu-system-x86_64 -cpu host,-x2apic -enable-kvm -m 2048 -smp 1 -kernel $PLAY/obj/linux-basic/arch/x86_64/boot/bzImage -initrd obj/initramfs-busybox.cpio.gz -s -append "nokaslr"
-
-
+		qemu-system-x86_64 -display gtk -cpu host,-x2apic -enable-kvm -m 2048 -smp 1 -kernel $PLAY/obj/linux-basic/arch/x86_64/boot/bzImage -initrd obj/initramfs-busybox.cpio.gz -s -append "nokaslr"
 
 		#sudo qemu-system-x86_64 -enable-kvm -m 2048 -smp 1 -kernel ~/playground/obj/linux-basic/arch/x86_64/boot/bzImage -initrd ~/ramdisk.img -s -append "console=ttyS0 nokaslr" -nographic
 	fi

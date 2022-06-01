@@ -5,7 +5,7 @@
 void * setup_iopm(void){
     void * iopm_va = (void *)kzalloc(0x3000, GFP_KERNEL);
     
-    // Intercept IO on 0x60
+    // Intercept IO on 0x60 (Only keyboard information)
 	*((uint8_t *)iopm_va + 12) = 0x1;  
 
 	printk("IOPM BASE VA: %llx\n", iopm_va);
