@@ -7,6 +7,12 @@
 #include "apic.h"
 #include "keylogger.h"
 
+#ifdef DEBUG_ENABLED
+# define DEBUG_PRINT(...) printk(__VA_ARGS__)
+#else
+# define DEBUG_PRINT(...) do {} while (0)
+#endif
+
 extern void * __global_Host_Reg_Store; 
 extern void * __global_Guest_Reg_Store;
 extern void * __global_VMCB_VA;
@@ -15,11 +21,11 @@ extern phys_addr_t __global_VMCB_PA;
 void handle_vmexit(void){
 	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
 	uint64_t exitcode = (uint64_t) vmcb->control_area.EXIT_CODE;
-	//printk("Hit exit handler....\n");
-	//printk("EXIT CODE: 0x%llx\n", exitcode);
-	//printk("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
-	//printk("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
-	//printk("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
+	//DEBUG_PRINT("Hit exit handler....\n");
+	//DEBUG_PRINT("EXIT CODE: 0x%llx\n", exitcode);
+	//DEBUG_PRINT("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
+	//DEBUG_PRINT("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
+	//DEBUG_PRINT("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
 
 	switch(exitcode){
 		case VMEXIT_IOIO:
@@ -29,7 +35,7 @@ void handle_vmexit(void){
 			handle_phys_int();
 			break;
 		case VMEXIT_CPUID:
-			printk("CPUID Instruction Intercept\n");
+			DEBUG_PRINT("CPUID Instruction Intercept\n");
 			vmcb->state_save_area.rax = 0xffffffff;
 			*(uint64_t *)(__global_Guest_Reg_Store + 32) = 0x20796548;
 			*(uint64_t *)(__global_Guest_Reg_Store + 40) = 0x72656854;
@@ -40,7 +46,7 @@ void handle_vmexit(void){
             vmcb->state_save_area.rip = vmcb->control_area.nRIP;
 			break;
 		case VMEXIT_RDTSC:
-			printk("RDTSC Instruction Intercept\n");
+			DEBUG_PRINT("RDTSC Instruction Intercept\n");
 			// This is just a test:
 			vmcb->state_save_area.rax = 0xdeadbeef;
 			vmcb->control_area.instr_intercepts.RDTSC = 0;
@@ -105,14 +111,14 @@ void handle_phys_int(void){
     vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
     // get_current_irrs();
     // get_current_isrs();
-    printk("Handling phys int..");
+    DEBUG_PRINT("Handling phys int..");
     if(is_timer_interrupt()){
         vmcb->control_area.guest_int_ctrl.V_INTR_PRIO = 4;
         vmcb->control_area.guest_int_ctrl.V_INTR_VEC = 236;
         vmcb->control_area.guest_int_ctrl.V_IRQ = 1;
         vmcb->control_area.EVENTINJ = 236 + (0 << 8) + (0 << 11) + (1 << 31);
     } else {
-        printk("Holy crap, not a timer interrupt\n");
+        DEBUG_PRINT("Holy crap, not a timer interrupt\n");
     }
     return;
 }

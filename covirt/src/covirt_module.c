@@ -8,6 +8,12 @@
 #include "reg_utils.h"
 #include "apic.h"
 
+#ifdef DEBUG_ENABLED
+# define DEBUG_PRINT(...) printk(__VA_ARGS__)
+#else
+# define DEBUG_PRINT(...) do {} while (0)
+#endif
+
 // Defined as globals for now, this is where we'll store the additional guest + host states
 void * __global_Host_Reg_Store; 
 void * __global_Guest_Reg_Store;
@@ -42,13 +48,13 @@ static int __init test_init(void)
 	VM_Setup_and_Run();	
 
 	// Why is this printing twice?
-	printk("IN GUEST: Hi, we're here!\n");
+	DEBUG_PRINT("IN GUEST: Hi, we're here!\n");
 	return 0;
 }
 
 static void __exit test_exit(void)
 {
-	printk("Goodbye World\n");
+	DEBUG_PRINT("Goodbye World\n");
 }
 
 

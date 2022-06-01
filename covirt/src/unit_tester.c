@@ -21,8 +21,8 @@ int test_kbd_read(void);
 int main(void){
     printf("Beginning Unit Tests...\n\n");
 
-    //test_cpuid_vendor();
-    test_kbd_read();
+    test_cpuid_vendor();
+    //test_kbd_read();
 }
 
 int test_kbd_read(void){

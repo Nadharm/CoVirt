@@ -5,6 +5,12 @@
 #include "reg_utils.h"
 #include "svm_utils.h"
 
+#ifdef DEBUG_ENABLED
+# define DEBUG_PRINT(...) printk(__VA_ARGS__)
+#else
+# define DEBUG_PRINT(...) do {} while (0)
+#endif
+
 extern phys_addr_t __global_VM_HSAVE_PA;
 /*
     Check if this machine is capable of SVM. If not, we can't proceed.
@@ -35,9 +41,9 @@ int svm_check(void) {
 	cpuid(op, &eax, &ebx, &ecx, &edx);
 
 	if (ecx & SVM_FF) {		// Feature flag bit pos for SVM: ECX[2] (0100b)
-		printk("STATUS CHECK: SVM Available.\n");
+		DEBUG_PRINT("STATUS CHECK: SVM Available.\n");
 	} else {
-		printk("STATUS CHECK: SVM NOT Available.\n");
+		DEBUG_PRINT("STATUS CHECK: SVM NOT Available.\n");
 		return -1;
 	}
 	
@@ -45,23 +51,23 @@ int svm_check(void) {
 	// Reading VM_CR to check for whether SVM is DISabled
 	// IF SVM.DIS == 1, EFER.SVME must be 0, thus we aren't able to do VMRUN.
 
-	printk("RDMSR on VM_CR...\n");
+	DEBUG_PRINT("RDMSR on VM_CR...\n");
 
 	ecx = VM_CR;
 	vmcr_msr = read_msr(ecx);
 
-	printk("VMCR MSR: %016llx\n", vmcr_msr);
+	DEBUG_PRINT("VMCR MSR: %016llx\n", vmcr_msr);
 	
 	if (!(vmcr_msr & VMCR_SVMDIS)){
-		printk("VMCR.SVMDIS: SVM Allowed (EFER.SVME Writeable)\n");
+		DEBUG_PRINT("VMCR.SVMDIS: SVM Allowed (EFER.SVME Writeable)\n");
 	} else {
-		printk("VMCR.SVMDIS: SVM NOT Allowed (EFER.SVME MBZ)\n");
+		DEBUG_PRINT("VMCR.SVMDIS: SVM NOT Allowed (EFER.SVME MBZ)\n");
 	}
 
 	if (!(vmcr_msr & VMCR_Lock)){
-		printk("VMCR.Lock = 0 (VMCR bits 3 + 4 unlocked)\n");
+		DEBUG_PRINT("VMCR.Lock = 0 (VMCR bits 3 + 4 unlocked)\n");
 	} else {
-		printk("VMCR.SVMDIS = 1 (VMCR bits 3 + 4 locked)\n");
+		DEBUG_PRINT("VMCR.SVMDIS = 1 (VMCR bits 3 + 4 locked)\n");
 	}
 
 	op = 0x8000000A;
@@ -72,16 +78,16 @@ int svm_check(void) {
 	cpuid(op, &eax, &ebx, &ecx, &edx);
 
 	if (edx & SVML_FF) {
-		printk("SVM disabled with key, may be unlockable.\n");
+		DEBUG_PRINT("SVM disabled with key, may be unlockable.\n");
 	} else {
-		printk("SVM Disabled at BIOS, Not Unlockable\n");
+		DEBUG_PRINT("SVM Disabled at BIOS, Not Unlockable\n");
 		//return -1;
 	}
 
 	if (edx & (0x1 << 3)){
-		printk("NRIPS ENABLED.\n");
+		DEBUG_PRINT("NRIPS ENABLED.\n");
 	} else {
-		printk("NRIPS DISABLED.\n");
+		DEBUG_PRINT("NRIPS DISABLED.\n");
 	}
 
 	return 0;
@@ -98,20 +104,20 @@ int enable_svm(void){
 
     // Set EFER.SVME to 1 
 	cur_efer = read_msr(EFER_MSR);
-	printk("Current EFER = %016llx\n", cur_efer);
+	DEBUG_PRINT("Current EFER = %016llx\n", cur_efer);
 	new_efer = cur_efer | _SVME;
 	hi = new_efer & 0xFFFFFFFF00000000;
 	lo = new_efer & 0x00000000FFFFFFFF;
 	write_msr(EFER_MSR, hi, lo);
-	printk("New EFER = %016llx\n", new_efer);
+	DEBUG_PRINT("New EFER = %016llx\n", new_efer);
 	
 	cur_efer = read_msr(EFER_MSR);
-	printk("Current EFER = %016llx\n", cur_efer);
+	DEBUG_PRINT("Current EFER = %016llx\n", cur_efer);
 	if (cur_efer & _SVME){
-		printk("EFER.SVME modification SUCCESS!\n");
+		DEBUG_PRINT("EFER.SVME modification SUCCESS!\n");
         return 0;
 	} else {
-		printk("EFER.SVME modification FAILED\n");
+		DEBUG_PRINT("EFER.SVME modification FAILED\n");
 		return -1;
 	}
 }
@@ -130,7 +136,7 @@ void init_vm_hsave_pa(void){
 	uint32_t lo;
 
 	vm_hsave_pa = read_msr(VM_HSAVE_PA_MSR);
-	printk("BEFORE CHANGE: VM_HSAVE_PA MSR = %lldx\n", vm_hsave_pa);
+	DEBUG_PRINT("BEFORE CHANGE: VM_HSAVE_PA MSR = %lldx\n", vm_hsave_pa);
 	// Allocate VM_HSAVE_PA MSR (C001_0117)
 	vm_hsave_va = kzalloc(0x1000, GFP_KERNEL);
 	vm_hsave_pa = virt_to_phys(vm_hsave_va);
@@ -141,5 +147,5 @@ void init_vm_hsave_pa(void){
 	vm_hsave_pa = read_msr(VM_HSAVE_PA_MSR);
 
 	__global_VM_HSAVE_PA = vm_hsave_pa;
-	printk("AFTER CHANGE: VM_HSAVE_PA MSR = %lldx\n", vm_hsave_pa);
+	DEBUG_PRINT("AFTER CHANGE: VM_HSAVE_PA MSR = %lldx\n", vm_hsave_pa);
 }

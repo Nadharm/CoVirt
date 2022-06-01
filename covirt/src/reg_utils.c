@@ -4,6 +4,12 @@
 #include "reg_utils.h"
 // #include "vmcb.h"
 
+#ifdef DEBUG_ENABLED
+# define DEBUG_PRINT(...) printk(__VA_ARGS__)
+#else
+# define DEBUG_PRINT(...) do {} while (0)
+#endif
+
 uint64_t read_msr (uint32_t msr)
 {
 	uint32_t lo, hi;
@@ -72,7 +78,7 @@ uint16_t get_cs(void){
 uint16_t get_fs(void){
  	uint16_t fs;
 	__asm__ __volatile__("mov %%fs, %0" : "=m"(fs));
-	printk("FS: %x\n", fs);
+	DEBUG_PRINT("FS: %x\n", fs);
 	return fs;
 }
 
@@ -146,9 +152,9 @@ uint64_t get_descriptor(seg_sel_t seg_sel){
 	if (seg_sel.TI == 0){
 		// Table Index == 0 => Global descriptor table
 		descriptor_ptr = (long *) (gdtr.base + selector_index);
-		// printk("GDTR BASE: %llx\n", gdtr.base);
-		// printk("Selector Index: %d\n", selector_index);
-		// printk("Descriptor: %llx\n", *descriptor_ptr);
+		// DEBUG_PRINT("GDTR BASE: %llx\n", gdtr.base);
+		// DEBUG_PRINT("Selector Index: %d\n", selector_index);
+		// DEBUG_PRINT("Descriptor: %llx\n", *descriptor_ptr);
 		return (uint64_t) *descriptor_ptr;
 	} 
 	// else {
@@ -157,7 +163,7 @@ uint64_t get_descriptor(seg_sel_t seg_sel){
 	// 	descriptor_ptr = (long *) (ldtr.base + selector_index);
 	// 	return (uint64_t) *descriptor_ptr;
 	// }
-	printk("\n\nLOOKING FOR SOMETHING IN LDT\n\n");
+	DEBUG_PRINT("\n\nLOOKING FOR SOMETHING IN LDT\n\n");
 	return 0;
 }
 
