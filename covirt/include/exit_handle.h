@@ -179,3 +179,5 @@ void handle_vmexit(void);
 void handle_phys_int(void);
 
 void handle_ioio(void);
+
+void handle_cpuid(void);

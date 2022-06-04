@@ -22,10 +22,10 @@ void handle_vmexit(void){
 	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
 	uint64_t exitcode = (uint64_t) vmcb->control_area.EXIT_CODE;
 	//DEBUG_PRINT("Hit exit handler....\n");
-	//DEBUG_PRINT("EXIT CODE: 0x%llx\n", exitcode);
-	//DEBUG_PRINT("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
-	//DEBUG_PRINT("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
-	//DEBUG_PRINT("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
+    // DEBUG_PRINT("EXIT CODE: 0x%llx\n", exitcode);
+    // DEBUG_PRINT("EXIT INFO1: 0x%llx\n", vmcb->control_area.EXIT_INFO1);
+    // DEBUG_PRINT("EXIT INFO2: 0x%llx\n", vmcb->control_area.EXIT_INFO2);
+    // DEBUG_PRINT("EXIT INT INFO: 0x%llx\n", vmcb->control_area.EXIT_INT_INFO);
 
 	switch(exitcode){
 		case VMEXIT_IOIO:
@@ -35,15 +35,7 @@ void handle_vmexit(void){
 			handle_phys_int();
 			break;
 		case VMEXIT_CPUID:
-			DEBUG_PRINT("CPUID Instruction Intercept\n");
-			vmcb->state_save_area.rax = 0xffffffff;
-			*(uint64_t *)(__global_Guest_Reg_Store + 32) = 0x20796548;
-			*(uint64_t *)(__global_Guest_Reg_Store + 40) = 0x72656854;
-			*(uint64_t *)(__global_Guest_Reg_Store + 48) = 0x293A2065;
-			//vmcb->state_save_area.rbx = 0xAAAAAAAA;
-			//vmcb->state_save_area.rcx = 0xBBBBBBBB;
-			//vmcb->state_save_area.rdx = 0xcafebaee;
-            vmcb->state_save_area.rip = vmcb->control_area.nRIP;
+			handle_cpuid();
 			break;
 		case VMEXIT_RDTSC:
 			DEBUG_PRINT("RDTSC Instruction Intercept\n");
@@ -182,5 +174,20 @@ void handle_ioio(void){
     return;
 }
 
+
+void handle_cpuid(void){
+	vmcb_t * vmcb = (vmcb_t *) __global_VMCB_VA;
+    uint32_t operation = vmcb->state_save_area.rax & 0xffffffff;
+    DEBUG_PRINT("CPUID Instruction Intercept\n");
+    if (operation == 0x00000000){
+        vmcb->state_save_area.rax = 0xffffffff;
+        *(uint64_t *)(__global_Guest_Reg_Store + 32) = 0x20796548;
+        *(uint64_t *)(__global_Guest_Reg_Store + 40) = 0x72656854;
+        *(uint64_t *)(__global_Guest_Reg_Store + 48) = 0x293A2065;
+    }
+    
+    vmcb->state_save_area.rip = vmcb->control_area.nRIP;
+    return;
+}
 
 

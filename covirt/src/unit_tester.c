@@ -15,32 +15,8 @@ static inline void native_cpuid(u_int32_t *eax, u_int32_t *ebx,
             : "0" (*eax), "2" (*ecx));
 }
 
-int test_cpuid_vendor(void);  // Testing CPUID function + Vendor output
-int test_kbd_read(void);
-
-int main(void){
-    printf("Beginning Unit Tests...\n\n");
-
-    test_cpuid_vendor();
-    //test_kbd_read();
-}
-
-int test_kbd_read(void){
-    u_int8_t val;
-    ioperm(0x60, 8, 10);
-    val = inb(0x60);
-    printf("val: %x\n", val);
-    val = inb(0x60);
-    printf("val: %x\n", val);
-    val = inb(0x60);
-    printf("val: %x\n", val);
-    val = inb(0x60);
-    printf("val: %x\n", val);
-    return val;
-}
-
-
-int test_cpuid_vendor(void){
+// Test the CPUID Fn0000_0000
+static int test_cpuid_vendor(void){
     u_int32_t eax; 
     u_int32_t ebx; 
     u_int32_t ecx; 
@@ -48,7 +24,7 @@ int test_cpuid_vendor(void){
 
     int i;
 
-    printf("CPUID Test (Print Vendor Name) -----\n");
+    printf("CPUID Test (Print Vendor Name | Fn0000_0000) -----\n");
     eax = 0x00000000;
     native_cpuid(&eax, &ebx, &ecx, &edx);
 
@@ -63,4 +39,29 @@ int test_cpuid_vendor(void){
     }
     printf("\n\n");
 }
+
+static int test_kbd_read(void){
+    u_int8_t val;
+    ioperm(0x60, 8, 10);
+    val = inb(0x60);
+    printf("val: %x\n", val);
+    val = inb(0x60);
+    printf("val: %x\n", val);
+    val = inb(0x60);
+    printf("val: %x\n", val);
+    val = inb(0x60);
+    printf("val: %x\n", val);
+    return val;
+}
+
+int main(void){
+    printf("Beginning Unit Tests...\n\n");
+
+    test_cpuid_vendor();
+    //test_kbd_read();
+}
+
+
+
+
 
