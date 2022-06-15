@@ -14,6 +14,8 @@
 
 A hypervisor (virtual machine monitor/VMM) sits logically below a guest operating system (virtual machine/VM), managing access to and emulating certain pieces of hardware for said guest. Ideally, this guest OS would operate no differently than it would directly on top of real hardware, making it unaware of its virtualized state. Due to this privileged position and inherent difficulty of detection, hypervisors present an interesting platform upon which to build malicious services.
 
+![image](https://user-images.githubusercontent.com/52044930/173881044-d1fa2e0e-088a-4144-8f80-a54e955c6e4c.png)
+
 CoVirt (our virtual-machine based rootkit) can be simply thought of as "lifting" the rest of the kernel up, and "sliding underneath" to dynamically virtualize it. It basically asserts itself as the hypervisor for the running operating system and forces the rest of the kernel to run on top of it. Currently, once it establishes itself as the hypervisor, CoVirt is able to perform a couple "malicious" services (just basic proof-of-concepts). 
 
 ## "Malicious" service demos
