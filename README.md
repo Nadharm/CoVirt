@@ -2,20 +2,21 @@
 
 ## A toy virtual-machine based rootkit designed for Linux Kernel v5.13.0 using AMD-V (SVM).
 
-### Table of Contents
+## Table of Contents
 
 1. [Introduction](#introduction)
 2. [Malicious Service Demos](#malicious-service-demos)
 3. [How to run/test it out](#test-it-out)
 4. [General Design Diagram (this is pretty sick, go look at it)](#general-design)
+5. [References](#references)
 
-### Introduction
+## Introduction
 
 A hypervisor (virtual machine monitor/VMM) sits logically below a guest operating system (virtual machine/VM), managing access to and emulating certain pieces of hardware for said guest. Ideally, this guest OS would operate no differently than it would directly on top of real hardware, making it unaware of its virtualized state. Due to this privileged position and inherent difficulty of detection, hypervisors present an interesting platform upon which to build malicious services.
 
 CoVirt (our virtual-machine based rootkit) can be simply thought of as "lifting" the rest of the kernel up, and "sliding underneath" to dynamically virtualize it. It basically asserts itself as the hypervisor for the running operating system and forces the rest of the kernel to run on top of it. Currently, once it establishes itself as the hypervisor, CoVirt is able to perform a couple "malicious" services (just basic proof-of-concepts). 
 
-### "Malicious" service demos
+## "Malicious" service demos
 **The maliciously implemented services are operating at the hypervisor-level (NOT kernel-level).**
 
 * Keylogger (just set it to output the buffer at 100 bytes, but adding data exfiltration over a network is very possible)
@@ -87,7 +88,7 @@ Outline for our basic SVM-based hypervisor/vmm implementation (used https://app.
 
 It's not the best outline, but it gets the point across (I hope) and it was made as a guide for development.
 
-References:
+## References:
 - https://www.amd.com/system/files/TechDocs/24593.pdf
 - https://www.amd.com/system/files/TechDocs/24594.pdf
 - https://github.com/PeterDinda/palacios
