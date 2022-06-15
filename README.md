@@ -1,12 +1,16 @@
 # CoVirt
 
-### STATUS: Minimally functional, still horribly organized and written
+### STATUS: Functional, still horribly organized and written
 
 A toy virtual-machine based rootkit designed for Linux Kernel v5.13.0 using AMD-V (SVM).
 
 Currently implemented "malicious" services:
 * Keylogger
+https://user-images.githubusercontent.com/52044930/173870279-a584f691-bc97-42dc-b649-1dd83c478b8a.mp4
+
 * CPUID Instruction intercept
+https://user-images.githubusercontent.com/52044930/173870229-c773d6e6-6d13-47c7-bc31-063a0e91abd9.mp4
+
 
 ## Test/run w/ QEMU/KVM + BusyBox
 WARNING: This is going to build a 5.13.0 Linux kernel.
